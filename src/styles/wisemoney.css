@@ -1,0 +1,355 @@
+/* ====================================================
+   WiseMoney — Design System
+   ==================================================== */
+
+/* ── Global rendering ── */
+html {
+  scroll-behavior: smooth;
+}
+*, *::before, *::after {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* ── Typography ── */
+h1, h2, h3, h4, h5, h6 {
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+p { line-height: 1.6; }
+
+/* ── Tabular numbers for money ── */
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* ── Smooth page entry ── */
+@keyframes wm-page-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.wm-page > * {
+  animation: wm-page-in 0.28s ease both;
+}
+.wm-page > *:nth-child(1) { animation-delay: 0ms; }
+.wm-page > *:nth-child(2) { animation-delay: 40ms; }
+.wm-page > *:nth-child(3) { animation-delay: 80ms; }
+.wm-page > *:nth-child(4) { animation-delay: 120ms; }
+.wm-page > *:nth-child(5) { animation-delay: 160ms; }
+
+/* ── Cards ── */
+.wm-card {
+  background: #ffffff;
+  border-radius: 18px;
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.04),
+    0 2px 8px rgba(15, 23, 42, 0.06),
+    0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.wm-card:hover {
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.06),
+    0 6px 20px rgba(15, 23, 42, 0.09),
+    0 2px 4px rgba(15, 23, 42, 0.04);
+}
+
+/* ── Hero gradient ── */
+.wm-hero {
+  background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 55%, #0f172a 100%);
+  box-shadow:
+    0 8px 32px rgba(30, 64, 175, 0.30),
+    0 2px 8px rgba(15, 23, 42, 0.15);
+  border-radius: 20px;
+}
+
+/* ── Glassmorphism for hero overlays ── */
+.wm-glass {
+  background: rgba(255, 255, 255, 0.10);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+/* ── Buttons ── */
+button:not(:disabled) {
+  transition:
+    transform 0.1s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease,
+    opacity 0.15s ease;
+}
+button:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+/* Primary button elevation */
+.btn-primary {
+  box-shadow: 0 2px 8px rgba(29, 78, 216, 0.30);
+}
+.btn-primary:hover:not(:disabled) {
+  box-shadow: 0 4px 16px rgba(29, 78, 216, 0.40);
+}
+
+/* ── Input fields ── */
+input, textarea, select {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+input:focus-visible, textarea:focus-visible {
+  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.18) !important;
+  border-color: #3b82f6 !important;
+}
+
+/* ── Progress bars ── */
+.wm-progress {
+  height: 8px;
+  background: #f1f5f9;
+  border-radius: 99px;
+  overflow: hidden;
+}
+.wm-progress-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #60a5fa 0%, #1d4ed8 100%);
+  transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Shimmer loading ── */
+@keyframes wm-shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+.animate-pulse {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e8edf5 50%, #f1f5f9 75%) !important;
+  background-size: 200% 100% !important;
+  animation: wm-shimmer 1.6s infinite linear !important;
+  border-radius: 12px !important;
+}
+
+/* ── Goal cards on slate background ── */
+.wm-goal-card {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.05),
+    0 2px 10px rgba(15, 23, 42, 0.07);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.wm-goal-card:hover {
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.07),
+    0 6px 24px rgba(15, 23, 42, 0.11);
+  transform: translateY(-1px);
+}
+
+/* ── Transaction rows ── */
+.wm-tx-row {
+  transition: background-color 0.12s ease;
+}
+.wm-tx-row:hover {
+  background-color: #f8fafc;
+}
+
+/* ── Section labels ── */
+.wm-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+/* ── Bottom tab bar ── */
+.wm-bottom-nav {
+  box-shadow: 0 -1px 0 rgba(15, 23, 42, 0.06), 0 -4px 20px rgba(15, 23, 42, 0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* ── Quiz option rows ── */
+.quiz-option {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+}
+.quiz-option:hover:not(.quiz-submitted) {
+  background-color: #eff6ff;
+  border-color: #93c5fd;
+}
+
+/* ── Badge ── */
+.wm-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* ── Dividers ── */
+.divide-y > * + * {
+  border-top-color: #f8fafc;
+}
+
+/* ── Stat chip glassmorphism ── */
+.hero-stat {
+  background: rgba(255, 255, 255, 0.09);
+  border-radius: 14px;
+  padding: 10px;
+  text-align: center;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  transition: background-color 0.15s ease;
+}
+
+/* ── Income / Expense accent backgrounds ── */
+.bg-income-soft  { background-color: rgba(16, 185, 129, 0.09); }
+.bg-expense-soft { background-color: rgba(239, 68, 68, 0.09); }
+.bg-savings-soft { background-color: rgba(59, 130, 246, 0.09); }
+
+/* ── Desktop max-width layout ── */
+@media (min-width: 1280px) {
+  .xl-row {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+  }
+  .xl-main { flex: 1; min-width: 0; }
+  .xl-sidebar { width: 320px; flex-shrink: 0; }
+}
+
+/* ── Responsive chart containers ── */
+.chart-container {
+  min-height: 200px;
+  position: relative;
+}
+
+/* ── FAB button ── */
+.wm-fab {
+  box-shadow:
+    0 4px 16px rgba(29, 78, 216, 0.35),
+    0 1px 4px rgba(15, 23, 42, 0.15);
+  transition: box-shadow 0.2s ease, transform 0.15s ease, background-color 0.15s ease;
+}
+.wm-fab:hover {
+  box-shadow:
+    0 6px 24px rgba(29, 78, 216, 0.45),
+    0 2px 8px rgba(15, 23, 42, 0.20);
+}
+
+/* ── Smooth color transitions on icons ── */
+svg {
+  transition: color 0.15s ease, fill 0.15s ease, stroke 0.15s ease;
+}
+
+/* ── Focus ring (brand blue) ── */
+:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* ── Remove blue highlight on mobile tap ── */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── Gradient text helper ── */
+.wm-gradient-text {
+  background: linear-gradient(90deg, #1d4ed8, #2563eb);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ── White card elevation levels ── */
+.elevation-1 {
+  box-shadow: 0 1px 3px rgba(15,23,42,0.05), 0 1px 2px rgba(15,23,42,0.04);
+}
+.elevation-2 {
+  box-shadow: 0 2px 8px rgba(15,23,42,0.06), 0 1px 3px rgba(15,23,42,0.04);
+}
+.elevation-3 {
+  box-shadow: 0 4px 16px rgba(15,23,42,0.08), 0 2px 6px rgba(15,23,42,0.05);
+}
+
+/* ── Safe area (mobile notch/home-indicator) ── */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* ════════════════════════════════════════════════
+   Banking-style design system
+   ════════════════════════════════════════════════ */
+
+/* Warmer page background */
+body {
+  background-color: #f4f6f9;
+}
+
+/* TopNav elevation */
+header.sticky {
+  box-shadow: 0 1px 0 rgba(255,255,255,0.08), 0 2px 8px rgba(15,23,42,0.25);
+}
+
+/* White metric cards */
+.bg-white.rounded-xl {
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05), 0 1px 8px rgba(15, 23, 42, 0.04);
+}
+
+/* Amount number formatting */
+.text-xl.font-bold,
+.text-2xl.font-bold,
+.text-3xl.font-bold {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  letter-spacing: -0.02em;
+}
+
+/* Goal cards: shadow on slate-50 bg */
+.wm-goal-card {
+  border: 1px solid rgba(15, 23, 42, 0.05);
+}
+
+/* Month selector buttons */
+.rounded-xl.bg-white.shadow-sm.border.border-slate-100 {
+  transition: background-color 0.12s ease;
+}
+
+/* Cleaner dialog/sheet bottom */
+.rounded-t-3xl {
+  border-top-left-radius: 20px !important;
+  border-top-right-radius: 20px !important;
+}
+
+/* Achievements card hover */
+.grid.grid-cols-2 .bg-white,
+.grid.grid-cols-3 .bg-white {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.grid.grid-cols-2 .bg-white:hover,
+.grid.grid-cols-3 .bg-white:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(15,23,42,0.10);
+}
+
+/* ── Hide scrollbar (horizontal scroll rows) ── */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
