@@ -89,7 +89,8 @@ export default function Login() {
       if (error) throw error;
       setSuccess('Email enviado! Verifica a tua caixa de entrada e segue as instruções.');
     } catch (err) {
-      setError(err.message);
+      const msg = err.message && err.message !== '{}' ? err.message : (err.error_description || 'Erro ao enviar email. Verifica as definições SMTP.');
+      setError(msg);
     } finally {
       setLoading(false);
     }

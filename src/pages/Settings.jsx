@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { User, Bell, Target, Wallet, LogOut, ChevronRight, Save, Loader2, Building2, XCircle } from 'lucide-react';
+import { User, Bell, Target, Wallet, LogOut, ChevronRight, Save, Loader2, Building2, XCircle, Download, FileSpreadsheet } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
@@ -10,13 +10,20 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import BankConnectionModal from '../components/settings/BankConnectionModal';
+import * as XLSX from 'xlsx';
 
 export default function Settings() {
   const [user, setUser] = useState(null);
   const [showBudgetDialog, setShowBudgetDialog] = useState(false);
   const [showBankModal, setShowBankModal] = useState(false);
+  const [showExportDialog, setShowExportDialog] = useState(false);
   const [budgetInput, setBudgetInput] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [exportFrom, setExportFrom] = useState('');
+  const [exportTo, setExportTo] = useState('');
+  const [exportFormat, setExportFormat] = useState('xlsx');
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState('');
   const queryClient = useQueryClient();
 
   useEffect(() => {
