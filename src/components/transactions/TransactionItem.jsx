@@ -42,7 +42,7 @@ export default function TransactionItem({ transaction, index = 0, onDelete, show
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-slate-900 truncate">{transaction.title}</p>
         <p className="text-xs text-slate-400">
-          {config.label} · {format(new Date(transaction.date), 'dd MMM')}
+          {config.label} · {format(new Date(transaction.date + 'T12:00:00'), 'dd MMM')}
         </p>
       </div>
 

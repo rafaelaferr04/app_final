@@ -119,8 +119,10 @@ export default function Settings() {
         return;
       }
 
+      const fmtDate = (d) => { const [y, m, day] = d.split('-'); return `${day}-${m}-${y}`; };
+
       const rows = filtered.map(t => ({
-        'Data': t.date,
+        'Data': fmtDate(t.date),
         'Descrição': t.title || '',
         'Tipo': t.type === 'income' ? 'Receita' : 'Despesa',
         'Categoria': CATEGORY_LABELS[t.category] || t.category || '',
@@ -316,13 +318,11 @@ export default function Settings() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-slate-700 text-sm">Data início</Label>
-                <Input type="date" value={exportFrom} onChange={e => setExportFrom(e.target.value)}
-                  className="mt-1.5 h-11 rounded-xl" />
+                <Input type="date" value={exportFrom} onChange={e => setExportFrom(e.target.value)} className="mt-1.5 h-11 rounded-xl" />
               </div>
               <div>
                 <Label className="text-slate-700 text-sm">Data fim</Label>
-                <Input type="date" value={exportTo} onChange={e => setExportTo(e.target.value)}
-                  className="mt-1.5 h-11 rounded-xl" />
+                <Input type="date" value={exportTo} onChange={e => setExportTo(e.target.value)} className="mt-1.5 h-11 rounded-xl" />
               </div>
             </div>
             <p className="text-xs text-slate-400">Deixa em branco para exportar todas as transações.</p>

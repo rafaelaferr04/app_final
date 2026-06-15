@@ -218,7 +218,7 @@ export default function Dashboard() {
                   </p>
                   {t.date && (
                     <p className="text-[10px] sm:text-xs text-slate-400 mt-0.5">
-                      {format(new Date(t.date), 'dd MMM')}
+                      {format(new Date(t.date + 'T12:00:00'), 'dd-MM-yyyy')}
                     </p>
                   )}
                 </div>
