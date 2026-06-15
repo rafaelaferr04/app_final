@@ -7,7 +7,15 @@ import { Button } from "@/components/ui/button";
 const priorityColors = {
   high:   'from-rose-500 to-pink-500',
   medium: 'from-amber-500 to-orange-500',
-  low:    'from-blue-500 to-cyan-500'
+  low:    'from-emerald-500 to-teal-500'
+};
+
+const priorityLabels = { high: 'Alta', medium: 'Média', low: 'Baixa' };
+
+const priorityDotColors = {
+  high:   'bg-rose-500',
+  medium: 'bg-amber-400',
+  low:    'bg-emerald-500'
 };
 
 export default function GoalCard({ goal, onAddFunds, onDelete, index = 0 }) {
@@ -36,8 +44,11 @@ export default function GoalCard({ goal, onAddFunds, onDelete, index = 0 }) {
           </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
+          {/* Dot — ecrãs pequenos */}
+          <div className={`w-2 h-2 rounded-full shrink-0 sm:hidden ${priorityDotColors[goal.priority || 'medium']}`} />
+          {/* Badge — ecrãs grandes */}
           <div className={`rounded-full px-1.5 py-0.5 text-[8px] sm:text-[9px] font-bold bg-gradient-to-r ${priorityColors[goal.priority || 'medium']} text-white hidden sm:block`}>
-            {goal.priority || 'med'}
+            {priorityLabels[goal.priority || 'medium']}
           </div>
           <button
             onClick={() => onDelete && onDelete(goal.id)}

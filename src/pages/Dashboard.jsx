@@ -174,9 +174,9 @@ export default function Dashboard() {
       />
 
       {motivationMsgs.length > 0 && (
-        <div className={`flex items-center gap-2.5 px-4 py-3 bg-white rounded-xl shadow-sm border-l-2 border-blue-400 transition-opacity duration-300 ${motivationVisible ? 'opacity-100' : 'opacity-0'}`}>
+        <div className={`-mt-3 mx-3 relative z-10 flex items-center gap-3 px-4 py-3 bg-white/75 backdrop-blur-md rounded-2xl shadow-md border border-white/60 transition-opacity duration-300 ${motivationVisible ? 'opacity-100' : 'opacity-0'}`}>
           <span className="text-base shrink-0">✨</span>
-          <p className="text-xs sm:text-sm text-slate-500 italic leading-snug">{motivationMsgs[motivationIdx]}</p>
+          <p className="text-xs sm:text-sm text-slate-700 italic leading-snug">{motivationMsgs[motivationIdx]}</p>
         </div>
       )}
 
