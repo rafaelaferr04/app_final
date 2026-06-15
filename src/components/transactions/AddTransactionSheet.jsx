@@ -4,30 +4,29 @@ import { X, Plus, Minus, FileUp, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 
 const incomeCategories = [
-  { value: 'salary', label: 'Salário' },
-  { value: 'freelance', label: 'Freelance' },
-  { value: 'investment', label: 'Investimento' },
-  { value: 'gift', label: 'Presente' },
-  { value: 'other', label: 'Outros' }
+  { value: 'salary',     label: 'Salário',     emoji: '💼' },
+  { value: 'freelance',  label: 'Freelance',   emoji: '💻' },
+  { value: 'investment', label: 'Investimento',emoji: '📈' },
+  { value: 'gift',       label: 'Presente',    emoji: '🎁' },
+  { value: 'other',      label: 'Outros',      emoji: '📦' },
 ];
 
 const expenseCategories = [
-  { value: 'food', label: 'Alimentação' },
-  { value: 'transport', label: 'Transporte' },
-  { value: 'housing', label: 'Habitação' },
-  { value: 'utilities', label: 'Contas' },
-  { value: 'entertainment', label: 'Lazer' },
-  { value: 'shopping', label: 'Compras' },
-  { value: 'health', label: 'Saúde' },
-  { value: 'education', label: 'Educação' },
-  { value: 'savings', label: 'Poupança' },
-  { value: 'other', label: 'Outros' }
+  { value: 'food',          label: 'Alimentação', emoji: '🍽️' },
+  { value: 'transport',     label: 'Transporte',  emoji: '🚌' },
+  { value: 'housing',       label: 'Habitação',   emoji: '🏠' },
+  { value: 'utilities',     label: 'Contas',      emoji: '💡' },
+  { value: 'entertainment', label: 'Lazer',       emoji: '🎬' },
+  { value: 'shopping',      label: 'Compras',     emoji: '🛍️' },
+  { value: 'health',        label: 'Saúde',       emoji: '🏥' },
+  { value: 'education',     label: 'Educação',    emoji: '📚' },
+  { value: 'savings',       label: 'Poupança',    emoji: '🐷' },
+  { value: 'other',         label: 'Outros',      emoji: '📦' },
 ];
 
 export default function AddTransactionSheet({ isOpen, onClose, onSave }) {
@@ -304,21 +303,22 @@ export default function AddTransactionSheet({ isOpen, onClose, onSave }) {
 
               <div>
                 <Label className="text-slate-700">Categoria</Label>
-                <Select 
-                  value={formData.category} 
-                  onValueChange={(value) => { setFormData({...formData, category: value}); setErrors(p => ({...p, category: ''})); }}
-                >
-                  <SelectTrigger className={`mt-1.5 h-12 rounded-xl ${errors.category ? 'border-rose-400' : 'border-slate-200'}`}>
-                    <SelectValue placeholder="Selecionar categoria" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat.value} value={cat.value}>
-                        {cat.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className={`mt-1.5 grid grid-cols-5 gap-1.5 p-2 rounded-xl border ${errors.category ? 'border-rose-400 bg-rose-50' : 'border-slate-200 bg-slate-50'}`}>
+                  {categories.map((cat) => {
+                    const selected = formData.category === cat.value;
+                    return (
+                      <button
+                        key={cat.value}
+                        type="button"
+                        onClick={() => { setFormData({...formData, category: cat.value}); setErrors(p => ({...p, category: ''})); }}
+                        className={`flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg transition-all ${selected ? 'bg-blue-700 text-white shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'}`}
+                      >
+                        <span className="text-base leading-none">{cat.emoji}</span>
+                        <span className="text-[9px] font-medium leading-tight text-center">{cat.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
                 {errors.category && <p className="text-xs text-rose-500 mt-1">{errors.category}</p>}
               </div>
 
