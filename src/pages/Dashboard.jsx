@@ -83,7 +83,7 @@ export default function Dashboard() {
         setMotivationIdx(idx => (idx + 1) % motivationMsgs.length);
         setMotivationVisible(true);
       }, 300);
-    }, 45000);
+    }, 2 * 60 * 60 * 1000);
     return () => clearInterval(interval);
   }, [motivationMsgs]);
 
@@ -174,9 +174,19 @@ export default function Dashboard() {
       />
 
       {motivationMsgs.length > 0 && (
-        <div className={`-mt-3 mx-3 relative z-10 flex items-center gap-3 px-4 py-3 bg-white/75 backdrop-blur-md rounded-2xl shadow-md border border-white/60 transition-opacity duration-300 ${motivationVisible ? 'opacity-100' : 'opacity-0'}`}>
-          <span className="text-base shrink-0">✨</span>
-          <p className="text-xs sm:text-sm text-slate-700 italic leading-snug">{motivationMsgs[motivationIdx]}</p>
+        <div
+          onClick={() => {
+            if (motivationMsgs.length <= 1) return;
+            setMotivationVisible(false);
+            setTimeout(() => {
+              setMotivationIdx(idx => (idx + 1) % motivationMsgs.length);
+              setMotivationVisible(true);
+            }, 300);
+          }}
+          className={`cursor-pointer flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-blue-600/65 to-indigo-700/65 backdrop-blur-sm select-none transition-opacity duration-300 w-fit max-w-sm mx-auto ${motivationVisible ? 'opacity-100' : 'opacity-0'}`}
+        >
+          <span className="text-xs shrink-0">✨</span>
+          <p className="text-xs text-white italic leading-snug [text-shadow:0_1px_4px_rgba(0,0,0,0.5)]">{motivationMsgs[motivationIdx]}</p>
         </div>
       )}
 
