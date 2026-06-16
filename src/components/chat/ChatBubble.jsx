@@ -87,11 +87,47 @@ export default function ChatBubble() {
   }]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [panelSize, setPanelSize] = useState(null); // null = tamanho original por defeito
   const { user } = useAuth();
   const { isFreeTrial, isPremiumPlus, getChatQuestionsLeft, useChatQuestion } = usePlan();
   const navigate = useNavigate();
   const endRef = useRef(null);
   const inputRef = useRef(null);
+  const panelRef = useRef(null);
+  const buttonRef = useRef(null);
+  const isResizing = useRef(false);
+  const resizeStart = useRef({ x: 0, y: 0, w: 0, h: 0 });
+
+  // Fechar ao clicar fora
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => {
+      if (panelRef.current?.contains(e.target) || buttonRef.current?.contains(e.target)) return;
+      setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  // Resize custom (arrasto no canto superior esquerdo)
+  useEffect(() => {
+    const onMove = (e) => {
+      if (!isResizing.current) return;
+      const dx = resizeStart.current.x - e.clientX;
+      const dy = resizeStart.current.y - e.clientY;
+      setPanelSize({
+        width:  Math.max(280, Math.min(720, resizeStart.current.w + dx)),
+        height: Math.max(260, Math.min(Math.floor(window.innerHeight * 0.88), resizeStart.current.h + dy)),
+      });
+    };
+    const onUp = () => { isResizing.current = false; };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    return () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+  }, []);
 
   // Fetch financial data for Premium Plus agent mode
   const { data: agentTransactions = [] } = useQuery({
@@ -155,10 +191,11 @@ export default function ChatBubble() {
     <>
       {/* Floating button */}
       <motion.button
+        ref={buttonRef}
         onClick={() => setOpen(v => !v)}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        className="fixed bottom-20 right-3 md:bottom-6 md:right-6 z-[35] w-12 h-12 md:w-14 md:h-14 rounded-full bg-blue-900 hover:bg-blue-950 text-white shadow-xl shadow-blue-900/40 flex items-center justify-center transition-colors"
+        className="fixed bottom-20 right-3 md:bottom-6 md:right-6 z-[60] w-12 h-12 md:w-14 md:h-14 rounded-full bg-blue-900 hover:bg-blue-950 text-white shadow-xl shadow-blue-900/40 flex items-center justify-center transition-colors"
         title="Finny — Assistente Financeiro"
       >
         <AnimatePresence mode="wait">
@@ -178,13 +215,34 @@ export default function ChatBubble() {
       <AnimatePresence>
         {open && (
           <motion.div
+            ref={panelRef}
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed bottom-[8.5rem] right-4 md:bottom-24 md:right-6 z-[35] w-[340px] max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-2xl border border-slate-100 flex flex-col overflow-hidden"
-            style={{ height: 'min(460px, calc(100dvh - 12rem))' }}
+            className="fixed bottom-[8.5rem] right-4 md:bottom-24 md:right-6 z-[60] w-[340px] max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-2xl border border-slate-100 flex flex-col overflow-hidden"
+            style={panelSize
+              ? { width: panelSize.width, height: panelSize.height }
+              : { height: 'min(460px, calc(100dvh - 12rem))' }
+            }
           >
+            {/* Pega de resize — apenas em ecrãs grandes */}
+            <div
+              onMouseDown={(e) => {
+                isResizing.current = true;
+                const rect = panelRef.current?.getBoundingClientRect();
+                resizeStart.current = {
+                  x: e.clientX, y: e.clientY,
+                  w: rect?.width  ?? 340,
+                  h: rect?.height ?? 460,
+                };
+                e.preventDefault();
+              }}
+              className="absolute top-0 left-0 w-5 h-5 hidden md:flex items-center justify-center cursor-nw-resize z-10 group"
+              title="Arrastar para redimensionar"
+            >
+              <div className="w-2 h-2 rounded-full bg-slate-300 group-hover:bg-blue-400 transition-colors" />
+            </div>
             {/* Header */}
             <div className={`flex items-center gap-3 px-4 py-3 text-white shrink-0 ${isPremiumPlus ? 'bg-gradient-to-r from-violet-700 to-blue-800' : 'bg-gradient-to-r from-blue-700 to-blue-900'}`}>
               <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
@@ -212,7 +270,7 @@ export default function ChatBubble() {
                   }`}>
                     {m.role === 'user' ? <User className="w-3.5 h-3.5" /> : <Sparkles className="w-3.5 h-3.5" />}
                   </div>
-                  <div className={`max-w-[78%] rounded-xl px-3 py-2 text-sm ${
+                  <div className={`max-w-[78%] rounded-xl px-3 py-2 text-xs ${
                     m.role === 'user'
                       ? 'bg-slate-700 text-white rounded-tr-none'
                       : 'bg-slate-50 border border-slate-100 text-slate-800 rounded-tl-none'
@@ -284,7 +342,7 @@ export default function ChatBubble() {
                     value={input}
                     onChange={e => setInput(e.target.value)}
                     placeholder={isPremiumPlus ? 'Pergunta com base nos teus dados...' : 'Pergunta ao Finny...'}
-                    className="flex-1 h-10 rounded-xl text-sm border-slate-200"
+                    className="flex-1 h-10 rounded-xl text-xs border-slate-200"
                     disabled={loading}
                   />
                   <Button type="submit" disabled={loading || !input.trim()}

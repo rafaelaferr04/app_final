@@ -306,59 +306,83 @@ export default function PlanSelection() {
         </p>
       </div>
 
-      {/* Plan cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full max-w-5xl">
+      {/* Plan cards — fluid scaling with clamp()+vw per column zone:
+            1-col  (<640px) : confortável, tamanho fixo
+            2-col (640-1023): clamp(..., 2-3vw, ...) — encolhe com o ecrã
+            4-col  (1024px+): clamp(..., 1-2vw, ...) — encolhe com o ecrã
+      */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-3 lg:gap-[clamp(0.5rem,1vw,1rem)] w-full max-w-sm sm:max-w-3xl lg:max-w-6xl">
         {PLANS.map((plan, i) => {
           const Icon = plan.icon;
           const isCurrent = currentPlan === plan.id;
           return (
             <motion.div key={plan.id}
               initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
-              className={`relative bg-white rounded-2xl p-5 flex flex-col border-2 ${plan.border} ${isCurrent ? 'opacity-60' : ''}`}>
+              className={`relative bg-white rounded-2xl flex flex-col border-2 ${plan.border} ${isCurrent ? 'opacity-60' : ''}`}
+              style={{ padding: 'clamp(0.75rem, 1.25vw, 1.25rem)' }}>
 
               {plan.badge && (
-                <div className={`absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full text-white text-[11px] font-bold ${plan.badgeBg}`}>
+                <div className={`absolute -top-3 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full text-white text-[10px] font-bold whitespace-nowrap ${plan.badgeBg}`}>
                   {plan.badge}
                 </div>
               )}
               {isCurrent && (
-                <div className="absolute -top-3 right-4 px-3 py-0.5 rounded-full bg-emerald-600 text-white text-[11px] font-bold">
+                <div className="absolute -top-3 right-3 px-2.5 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-bold whitespace-nowrap">
                   Plano actual
                 </div>
               )}
 
-              <div className={`w-10 h-10 rounded-xl ${plan.iconBg} flex items-center justify-center mb-3`}>
-                <Icon className={`w-5 h-5 ${plan.iconColor}`} />
+              {/* Icon — fluid size */}
+              <div className={`rounded-xl ${plan.iconBg} flex items-center justify-center shrink-0`}
+                style={{ width: 'clamp(1.75rem,2.5vw,2.5rem)', height: 'clamp(1.75rem,2.5vw,2.5rem)', marginBottom: 'clamp(0.5rem,0.75vw,0.75rem)' }}>
+                <Icon className={`${plan.iconColor}`}
+                  style={{ width: 'clamp(0.875rem,1.25vw,1.25rem)', height: 'clamp(0.875rem,1.25vw,1.25rem)' }} />
               </div>
 
-              <h3 className="font-bold text-slate-800 text-base mb-0.5">{plan.name}</h3>
+              {/* Name — fluid */}
+              <h3 className="font-bold text-slate-800 leading-tight"
+                style={{ fontSize: 'clamp(0.75rem,1.1vw,1rem)', marginBottom: '0.125rem' }}>
+                {plan.name}
+              </h3>
+
+              {/* Price — fluid */}
               {plan.price ? (
-                <div className="flex items-baseline gap-1 mb-4">
-                  <span className="text-2xl font-extrabold text-slate-900">€{plan.price}</span>
-                  <span className="text-slate-400 text-xs">/{plan.period}</span>
+                <div className="flex items-baseline gap-1" style={{ marginBottom: 'clamp(0.5rem,1vw,1rem)' }}>
+                  <span className="font-extrabold text-slate-900"
+                    style={{ fontSize: 'clamp(1.1rem,1.75vw,1.5rem)' }}>€{plan.price}</span>
+                  <span className="text-slate-400" style={{ fontSize: 'clamp(0.55rem,0.7vw,0.65rem)' }}>/{plan.period}</span>
                 </div>
               ) : (
-                <div className="mb-4">
-                  <span className="text-2xl font-extrabold text-slate-900">Grátis</span>
-                  <span className="text-slate-400 text-xs ml-1">por {plan.period}</span>
+                <div style={{ marginBottom: 'clamp(0.5rem,1vw,1rem)' }}>
+                  <span className="font-extrabold text-slate-900"
+                    style={{ fontSize: 'clamp(1.1rem,1.75vw,1.5rem)' }}>Grátis</span>
+                  <span className="text-slate-400 ml-1" style={{ fontSize: 'clamp(0.55rem,0.7vw,0.65rem)' }}>por {plan.period}</span>
                 </div>
               )}
 
-              <ul className="space-y-2 mb-5 flex-1">
+              {/* Features — fluid */}
+              <ul className="flex-1" style={{ marginBottom: 'clamp(0.625rem,1vw,1.25rem)' }}>
                 {plan.features.map((f, fi) => (
-                  <li key={fi} className="flex items-start gap-2">
+                  <li key={fi} className="flex items-start" style={{ gap: 'clamp(0.25rem,0.5vw,0.5rem)', marginBottom: 'clamp(0.25rem,0.5vw,0.5rem)' }}>
                     {f.ok
-                      ? <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                      : <Lock className="w-4 h-4 text-slate-300 shrink-0 mt-0.5" />}
-                    <span className={`text-xs ${f.ok ? 'text-slate-700' : 'text-slate-400'}`}>{f.text}</span>
+                      ? <Check className="text-emerald-500 shrink-0 mt-0.5"
+                          style={{ width: 'clamp(0.625rem,0.9vw,0.875rem)', height: 'clamp(0.625rem,0.9vw,0.875rem)' }} />
+                      : <Lock className="text-slate-300 shrink-0 mt-0.5"
+                          style={{ width: 'clamp(0.625rem,0.9vw,0.875rem)', height: 'clamp(0.625rem,0.9vw,0.875rem)' }} />}
+                    <span className={`leading-tight ${f.ok ? 'text-slate-700' : 'text-slate-400'}`}
+                      style={{ fontSize: 'clamp(0.6rem,0.85vw,0.75rem)' }}>
+                      {f.text}
+                    </span>
                   </li>
                 ))}
               </ul>
 
+              {/* CTA button — fluid */}
               <Button onClick={() => !isCurrent && handleSelect(plan)}
                 disabled={loading || isCurrent}
-                className={`w-full h-10 rounded-xl text-sm font-semibold ${plan.ctaClass} disabled:opacity-50`}>
-                {loading && plan.id === 'free_trial' ? <Loader2 className="w-4 h-4 animate-spin" /> : isCurrent ? 'Plano actual' : plan.cta}
+                className={`w-full rounded-xl font-semibold ${plan.ctaClass} disabled:opacity-50`}
+                style={{ height: 'clamp(1.75rem,2.5vw,2.5rem)', fontSize: 'clamp(0.6rem,0.9vw,0.875rem)' }}>
+                {loading && plan.id === 'free_trial' ? <Loader2 className="w-3 h-3 animate-spin" /> : isCurrent ? 'Plano actual' : plan.cta}
               </Button>
             </motion.div>
           );

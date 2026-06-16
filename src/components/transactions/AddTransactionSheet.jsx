@@ -144,14 +144,14 @@ export default function AddTransactionSheet({ isOpen, onClose, onSave }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[65]"
           />
           <motion.div
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl bg-white p-6 shadow-2xl max-h-[90vh] overflow-y-auto"
+            className="fixed bottom-0 left-0 right-0 z-[70] rounded-t-3xl bg-white p-6 shadow-2xl max-h-[90vh] overflow-y-auto"
           >
             <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-slate-200" />
             
