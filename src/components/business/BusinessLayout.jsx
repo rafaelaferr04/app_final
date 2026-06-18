@@ -22,16 +22,16 @@ export default function BusinessLayout({ children }) {
   const { needsBusinessSetup, reloadProfile } = usePlan();
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="flex flex-col h-screen bg-slate-50">
       {/* Top nav */}
-      <header className="sticky top-0 z-40 bg-white border-b border-slate-100 shadow-sm">
+      <header className="shrink-0 z-40 bg-white border-b border-slate-100 shadow-sm">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 flex items-center justify-between h-14 min-w-0 gap-2">
-          <div className="flex items-center gap-2">
+          <Link to="/BusinessDashboard" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <div className="w-8 h-8 rounded-lg bg-amber-600 flex items-center justify-center">
               <Briefcase className="w-4 h-4 text-white" />
             </div>
             <span className="font-bold text-slate-800 text-sm truncate">WiseMoney <span className="text-amber-600">Business</span></span>
-          </div>
+          </Link>
 
           {/* Desktop nav links */}
           <nav className="hidden min-[800px]:flex items-center gap-0.5">
@@ -76,8 +76,10 @@ export default function BusinessLayout({ children }) {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 pb-28 min-[800px]:pb-8 overflow-x-hidden min-w-0">
-        {children}
+      <main className="flex-1 overflow-y-auto overflow-x-hidden min-w-0">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 min-[800px]:pb-8 min-w-0">
+          {children}
+        </div>
       </main>
 
       <BusinessBottomTabBar />

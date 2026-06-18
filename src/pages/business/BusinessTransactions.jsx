@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -69,8 +69,8 @@ const STATUS_LABELS = { draft: 'Rascunho', pending: 'Pendente', approved: 'Aprov
 
 export default function BusinessTransactions() {
   const qc = useQueryClient();
-  const [user, setUser] = useState(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [editTx, setEditTx] = useState(null);
   const [importOpen, setImportOpen] = useState(false);
   const [bankOpen, setBankOpen] = useState(false);
   const [picker, setPicker] = useState(false);
@@ -78,7 +78,7 @@ export default function BusinessTransactions() {
   const [typeFilter, setTypeFilter] = useState('all');
   const [monthFilter, setMonthFilter] = useState(() => new Date().toISOString().slice(0, 7));
 
-  useEffect(() => { base44.auth.me().then(setUser); }, []);
+  const businessId = localStorage.getItem('wm_business_id');
 
   const { data: transactions = [], isLoading } = useQuery({
     queryKey: ['business_transactions'],
@@ -88,12 +88,13 @@ export default function BusinessTransactions() {
     queryKey: ['departments'],
     queryFn: () => base44.entities.Department.filter(),
   });
-  const { data: userProfiles = [] } = useQuery({
-    queryKey: ['userProfile', user?.email],
-    queryFn: () => user ? base44.entities.UserProfile.filter({ created_by: user.email }) : [],
-    enabled: !!user,
+  const { data: bizAccounts = [] } = useQuery({
+    queryKey: ['business_account_bank', businessId],
+    queryFn: () => businessId ? base44.entities.BusinessAccount.filter({ id: businessId }) : [],
+    enabled: !!businessId,
   });
-  const bankConnected = userProfiles[0]?.bank_connected ?? false;
+  const bizAccount = bizAccounts[0];
+  const bankConnected = bizAccount?.bank_connected ?? false;
 
   const filtered = useMemo(() => {
     return transactions.filter(t => {
@@ -112,11 +113,17 @@ export default function BusinessTransactions() {
     costs: filtered.filter(t => ['cost', 'investment', 'tax'].includes(t.type)).reduce((s, t) => s + (t.amount || 0), 0),
   }), [filtered]);
 
-  const handleSave = async (data) => {
-    const me = await base44.auth.me();
-    await base44.entities.BusinessTransaction.create({ ...data, created_by: me.email });
-    qc.invalidateQueries({ queryKey: ['business_transactions'] });
-    toast.success('Transação registada');
+  const handleSave = async (data, id) => {
+    if (id) {
+      await base44.entities.BusinessTransaction.update(id, data);
+      qc.invalidateQueries({ queryKey: ['business_transactions'] });
+      toast.success('Transação atualizada');
+    } else {
+      const me = await base44.auth.me();
+      await base44.entities.BusinessTransaction.create({ ...data, created_by: me.email });
+      qc.invalidateQueries({ queryKey: ['business_transactions'] });
+      toast.success('Transação registada');
+    }
   };
 
   const handleDelete = async (id) => {
@@ -126,14 +133,26 @@ export default function BusinessTransactions() {
   };
 
   const handleConnectBank = async (provider) => {
-    const me = await base44.auth.me();
-    const profiles = await base44.entities.UserProfile.filter({ created_by: me.email });
-    const data = { bank_connected: true, bank_provider: provider.id, bank_access_token: provider.access_token, bank_last_sync: new Date().toISOString() };
-    if (profiles.length > 0) await base44.entities.UserProfile.update(profiles[0].id, data);
-    else await base44.entities.UserProfile.create({ ...data, created_by: me.email });
-    qc.invalidateQueries({ queryKey: ['userProfile'] });
-    setBankOpen(false);
-    toast.success('Banco conectado');
+    try {
+      const data = { bank_connected: true, bank_provider: provider.id, bank_access_token: provider.access_token, bank_last_sync: new Date().toISOString() };
+      await base44.entities.BusinessAccount.update(businessId, data);
+      qc.invalidateQueries({ queryKey: ['business_account_bank'] });
+      toast.success('Banco da empresa conectado');
+    } catch {
+      toast.error('Erro ao guardar conexão. Confirma que a migração SQL foi aplicada.');
+    } finally {
+      setBankOpen(false);
+    }
+  };
+
+  const handleDisconnectBank = async () => {
+    try {
+      await base44.entities.BusinessAccount.update(businessId, { bank_connected: false, bank_provider: null, bank_access_token: null, bank_last_sync: null });
+      qc.invalidateQueries({ queryKey: ['business_account_bank'] });
+      toast.success('Banco desconectado');
+    } catch {
+      toast.error('Erro ao desconectar banco.');
+    }
   };
 
   return (
@@ -176,7 +195,7 @@ export default function BusinessTransactions() {
       {/* FAB */}
       <motion.button
         whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-        onClick={() => setPicker(true)}
+        onClick={() => { setEditTx(null); setPicker(true); }}
         className="fixed bottom-20 min-[800px]:bottom-6 left-4 min-[800px]:left-6 z-50 flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-600 text-white shadow-lg shadow-amber-600/40 hover:bg-amber-700 transition-colors"
         title="Nova transação"
       >
@@ -194,13 +213,24 @@ export default function BusinessTransactions() {
           <input type="month" value={monthFilter} onChange={e => setMonthFilter(e.target.value)}
             className="h-10 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500" />
         </div>
-        <div className="flex gap-1.5 flex-wrap">
-          {['all', 'revenue', 'cost', 'investment', 'tax'].map(t => (
-            <button key={t} onClick={() => setTypeFilter(t)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${typeFilter === t ? 'bg-amber-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
-              {t === 'all' ? 'Todos' : TYPE_LABELS[t]}
-            </button>
-          ))}
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex gap-1.5 flex-wrap">
+            {['all', 'revenue', 'cost', 'investment', 'tax'].map(t => (
+              <button key={t} onClick={() => setTypeFilter(t)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${typeFilter === t ? 'bg-amber-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                {t === 'all' ? 'Todos' : TYPE_LABELS[t]}
+              </button>
+            ))}
+          </div>
+          {bankConnected && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-medium text-emerald-700 shrink-0">
+              <Building2 className="w-3 h-3 shrink-0" />
+              <span>Banco{bizAccount?.bank_provider ? ` · ${bizAccount.bank_provider}` : ''}</span>
+              <button onClick={handleDisconnectBank} title="Desconectar banco" className="ml-0.5 p-0.5 rounded-full hover:bg-emerald-200 transition-colors">
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -241,6 +271,10 @@ export default function BusinessTransactions() {
                     </p>
                     <p className="text-xs text-slate-400">{TYPE_LABELS[tx.type]}</p>
                   </div>
+                  <button onClick={() => { setEditTx(tx); setSheetOpen(true); }}
+                    className="opacity-0 group-hover:opacity-100 p-2 rounded-xl hover:bg-amber-50 text-amber-600 transition-all">
+                    <Pencil className="w-4 h-4" />
+                  </button>
                   <button onClick={() => handleDelete(tx.id)}
                     className="opacity-0 group-hover:opacity-100 p-2 rounded-xl hover:bg-red-50 text-red-500 transition-all ml-1">
                     <Trash2 className="w-4 h-4" />
@@ -260,7 +294,7 @@ export default function BusinessTransactions() {
         onBank={() => setBankOpen(true)}
         bankConnected={bankConnected}
       />
-      <AddBusinessTransactionSheet isOpen={sheetOpen} onClose={() => setSheetOpen(false)} onSave={handleSave} departments={departments} />
+      <AddBusinessTransactionSheet isOpen={sheetOpen} onClose={() => { setSheetOpen(false); setEditTx(null); }} onSave={handleSave} departments={departments} editTransaction={editTx} />
       <ImportTransactionsModal isOpen={importOpen} onClose={() => setImportOpen(false)} />
       <BankConnectionModal isOpen={bankOpen} onClose={() => setBankOpen(false)} onConnect={handleConnectBank} />
     </div>

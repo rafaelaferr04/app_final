@@ -3,7 +3,8 @@ import { supabase } from '@/api/localDb';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Wallet, TrendingUp, Shield, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
+import { Loader2, TrendingUp, Shield, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
+import logo from '../../logo/logo.jpeg';
 
 const ERRORS = {
   'Invalid login credentials':            'Email ou password incorretos.',
@@ -122,8 +123,8 @@ export default function Login() {
     <div className="min-h-screen bg-gradient-to-br from-blue-800 via-blue-900 to-slate-900 flex flex-col items-center justify-center p-4">
       {/* Hero */}
       <div className="text-center mb-8">
-        <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-white/20 backdrop-blur-sm text-white mb-4 shadow-xl">
-          <Wallet className="w-10 h-10" />
+        <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl overflow-hidden mb-4 shadow-xl">
+          <img src={logo} alt="WiseMoney" className="w-full h-full object-cover" />
         </div>
         <h1 className="text-4xl font-bold text-white mb-2">WiseMoney</h1>
         <p className="text-white/70 text-sm">Gere as tuas finanças com inteligência</p>

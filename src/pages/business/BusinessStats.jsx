@@ -11,6 +11,13 @@ import { pt } from 'date-fns/locale';
 import { TrendingUp, TrendingDown, BarChart3, Building2, Calculator, Users, Star } from 'lucide-react';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
+function getSalaryAtMonth(emp, monthKey, histories) {
+  const relevant = histories
+    .filter(h => h.employee_id === emp.id && h.effective_date?.slice(0, 7) <= monthKey)
+    .sort((a, b) => b.effective_date.localeCompare(a.effective_date));
+  return relevant.length > 0 ? (relevant[0].salary || 0) : (emp.salary || 0);
+}
+
 function fmtMoney(v, decimals = 0) {
   const abs = Math.abs(v);
   if (abs >= 1_000_000) return `€${(v / 1_000_000).toFixed(1)}M`;
@@ -71,17 +78,31 @@ export default function BusinessStats() {
     queryKey: ['business_kpis'],
     queryFn: () => base44.entities.BusinessKPI.filter({ is_active: true }),
   });
+  const { data: salaryHistories = [] } = useQuery({
+    queryKey: ['salary_history'],
+    queryFn: () => base44.entities.SalaryHistory.filter({}, '-effective_date'),
+  });
 
-  const monthCount = period === '3m' ? 3 : period === '6m' ? 6 : 12;
+  const globalMonthCount = useMemo(() => {
+    const allDates = transactions.map(t => t.date).filter(Boolean);
+    if (allDates.length === 0) return 12;
+    const earliest = allDates.sort()[0];
+    const [y, m] = earliest.split('-').map(Number);
+    const now = new Date();
+    const diff = (now.getFullYear() - y) * 12 + (now.getMonth() + 1 - m) + 1;
+    return Math.max(1, diff);
+  }, [transactions]);
+
+  const monthCount = period === '1m' ? 1 : period === '3m' ? 3 : period === '6m' ? 6 : period === '12m' ? 12 : globalMonthCount;
   const months     = buildMonths(monthCount);
 
   // ── P&L per month ─────────────────────────────────────────────────────────
   const plMonths = useMemo(() => months.map(m => {
     const rev     = transactions.filter(t => t.type === 'revenue'   && t.date?.startsWith(m.key)).reduce((s, t) => s + (t.amount || 0), 0);
-    // Salaries: only employees hired on or before end of this month
+    // Salaries: only employees hired on or before end of this month, using effective salary at that month
     const salaries = employees
       .filter(e => e.status === 'active' && (!e.hire_date || e.hire_date.slice(0, 7) <= m.key))
-      .reduce((s, e) => s + (e.salary || 0), 0);
+      .reduce((s, e) => s + getSalaryAtMonth(e, m.key, salaryHistories), 0);
     // OpCosts = ALL cost transactions (excluding 'salaries' category to avoid double-counting)
     const opCosts  = transactions.filter(t => t.type === 'cost' && t.category !== 'salaries' && t.date?.startsWith(m.key)).reduce((s, t) => s + (t.amount || 0), 0);
     const invest   = transactions.filter(t => t.type === 'investment' && t.date?.startsWith(m.key)).reduce((s, t) => s + (t.amount || 0), 0);
@@ -92,7 +113,7 @@ export default function BusinessStats() {
     const net      = ebitda - taxes;
     const margin   = rev > 0 ? Math.round((gross / rev) * 10) / 10 : 0;
     return { month: m.label, rev, salaries, opCosts, invest, taxes, costs, gross, ebitda, net, margin };
-  }), [transactions, months, employees]);
+  }), [transactions, months, employees, salaryHistories]);
 
   const totPL = useMemo(() => plMonths.reduce((acc, m) => ({
     rev: acc.rev + m.rev, salaries: acc.salaries + m.salaries, opCosts: acc.opCosts + m.opCosts,
@@ -158,16 +179,16 @@ export default function BusinessStats() {
     const txCosts = months.reduce((tot, m) =>
       tot + transactions.filter(t => t.department === d.name && t.date?.startsWith(m.key) && t.type !== 'revenue')
         .reduce((s, t) => s + (t.amount || 0), 0), 0);
-    // Salary costs: sum per month, only employees hired by that month
+    // Salary costs: sum per month, only employees hired by that month, using effective salary
     const empSalaries = months.reduce((tot, m) =>
       tot + employees
         .filter(e => e.department === d.name && e.status === 'active' && (!e.hire_date || e.hire_date.slice(0, 7) <= m.key))
-        .reduce((s, e) => s + (e.salary || 0), 0), 0);
+        .reduce((s, e) => s + getSalaryAtMonth(e, m.key, salaryHistories), 0), 0);
     const spent    = txCosts + empSalaries;
     const budget   = (d.budget_monthly || 0) * monthCount;
     const empCount = employees.filter(e => e.department === d.name && e.status === 'active').length;
     return { name: d.name, budget, spent, txCosts, empSalaries, pct: budget > 0 ? Math.round((spent / budget) * 100) : 0, empCount };
-  }), [departments, transactions, months, employees, monthCount]);
+  }), [departments, transactions, months, employees, monthCount, salaryHistories]);
 
   // ── Financial ratios ──────────────────────────────────────────────────────
   const ratios = useMemo(() => {
@@ -222,16 +243,16 @@ export default function BusinessStats() {
       </motion.div>
 
       {/* ── Period + Tab selectors ─────────────────────────────────────────── */}
-      <div className="flex gap-2 items-center flex-wrap">
-        <div className="flex gap-1 p-1 bg-white rounded-xl border border-slate-100 shadow-sm">
-          {[{ v: '3m', l: '3M' }, { v: '6m', l: '6M' }, { v: '12m', l: '12M' }].map(p => (
+      <div className="flex flex-col-reverse items-start gap-2 sm:flex-row sm:items-center">
+        <div className="flex gap-1 p-1 bg-white rounded-xl border border-slate-100 shadow-sm shrink-0">
+          {[{ v: '1m', l: '1M' }, { v: '3m', l: '3M' }, { v: '6m', l: '6M' }, { v: '12m', l: '12M' }, { v: 'global', l: 'Tudo' }].map(p => (
             <button key={p.v} onClick={() => setPeriod(p.v)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${period === p.v ? 'bg-amber-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}>
+              className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-semibold transition-all ${period === p.v ? 'bg-amber-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}>
               {p.l}
             </button>
           ))}
         </div>
-        <div className="flex-1 flex gap-1 bg-white rounded-xl border border-slate-100 shadow-sm p-1 overflow-x-auto no-scrollbar">
+        <div className="flex-1 w-full sm:w-auto flex gap-1 bg-white rounded-xl border border-slate-100 shadow-sm p-1 overflow-x-auto no-scrollbar">
           {TABS.map(t => {
             const Icon = t.icon;
             return (
@@ -251,7 +272,7 @@ export default function BusinessStats() {
       {tab === 'pl' && (
         <div className="space-y-4">
           {/* Charts row */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Revenue + Net evolution */}
             <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
               <div className="flex items-center gap-2 mb-4">
@@ -301,7 +322,7 @@ export default function BusinessStats() {
 
           {/* Revenue + Cost pies */}
           {(revByCat.length > 0 || costByCat.length > 0) && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {revByCat.length > 0 && (
                 <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
                   <div className="flex items-center gap-2 mb-4">
@@ -369,25 +390,27 @@ export default function BusinessStats() {
             </div>
           )}
 
-          {/* Margin evolution */}
-          <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-1 h-4 rounded-full bg-violet-500" />
-              <h3 className="font-semibold text-slate-700 text-sm">Evolução da Margem Bruta</h3>
+          {/* Margin + P&L Statement */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Margin evolution */}
+            <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-1 h-4 rounded-full bg-violet-500" />
+                <h3 className="font-semibold text-slate-700 text-sm">Evolução da Margem Bruta</h3>
+              </div>
+              <ResponsiveContainer width="100%" height={200}>
+                <LineChart data={plMonths} margin={{ top: 4, right: 0, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} width={40} />
+                  <Tooltip formatter={v => [`${v.toFixed(1)}%`, 'Margem Bruta']} contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 }} />
+                  <Line type="monotone" dataKey="margin" name="Margem Bruta" stroke="#8b5cf6" strokeWidth={2.5} dot={{ fill: '#8b5cf6', r: 3 }} />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
-            <ResponsiveContainer width="100%" height={160}>
-              <LineChart data={plMonths} margin={{ top: 4, right: 0, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} width={40} />
-                <Tooltip formatter={v => [`${v.toFixed(1)}%`, 'Margem Bruta']} contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 }} />
-                <Line type="monotone" dataKey="margin" name="Margem Bruta" stroke="#8b5cf6" strokeWidth={2.5} dot={{ fill: '#8b5cf6', r: 3 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
 
-          {/* P&L Statement */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            {/* P&L Statement */}
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-50">
               <h3 className="font-semibold text-slate-700 text-sm">Demonstração de Resultados — {monthCount} meses</h3>
             </div>
@@ -410,6 +433,7 @@ export default function BusinessStats() {
                 </div>
               );
             })}
+            </div>
           </div>
         </div>
       )}
@@ -419,45 +443,48 @@ export default function BusinessStats() {
       ──────────────────────────────────────────────────────────────────── */}
       {tab === 'cashflow' && (
         <div className="space-y-4">
-          {/* Cash flow bar chart */}
-          <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-1 h-4 rounded-full bg-blue-500" />
-              <h3 className="font-semibold text-slate-700 text-sm">Entradas e Saídas de Caixa</h3>
+          {/* Cash flow charts */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Cash flow bar chart */}
+            <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-1 h-4 rounded-full bg-blue-500" />
+                <h3 className="font-semibold text-slate-700 text-sm">Entradas e Saídas de Caixa</h3>
+              </div>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={cfData} margin={{ top: 4, right: 0, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={v => fmtMoney(v)} width={52} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="inflow"  name="Entradas" fill="#10b981" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="outflow" name="Saídas"   fill="#ef4444" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={cfData} margin={{ top: 4, right: 0, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={v => fmtMoney(v)} width={52} />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="inflow"  name="Entradas" fill="#10b981" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="outflow" name="Saídas"   fill="#ef4444" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
 
-          {/* Cumulative cash position */}
-          <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-1 h-4 rounded-full bg-emerald-500" />
-              <h3 className="font-semibold text-slate-700 text-sm">Posição de Caixa Acumulada</h3>
+            {/* Cumulative cash position */}
+            <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-1 h-4 rounded-full bg-emerald-500" />
+                <h3 className="font-semibold text-slate-700 text-sm">Posição de Caixa Acumulada</h3>
+              </div>
+              <ResponsiveContainer width="100%" height={200}>
+                <AreaChart data={cfCumulative} margin={{ top: 4, right: 0, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="gCash" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%"  stopColor="#10b981" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0}   />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={v => fmtMoney(v)} width={52} />
+                  <Tooltip formatter={v => [fmtMoney(v, 2), 'Saldo acumulado']} contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 }} />
+                  <Area type="monotone" dataKey="saldo" stroke="#10b981" strokeWidth={2.5} fill="url(#gCash)" />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
-            <ResponsiveContainer width="100%" height={160}>
-              <AreaChart data={cfCumulative} margin={{ top: 4, right: 0, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="gCash" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#10b981" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}   />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={v => fmtMoney(v)} width={52} />
-                <Tooltip formatter={v => [fmtMoney(v, 2), 'Saldo acumulado']} contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 }} />
-                <Area type="monotone" dataKey="saldo" stroke="#10b981" strokeWidth={2.5} fill="url(#gCash)" />
-              </AreaChart>
-            </ResponsiveContainer>
           </div>
 
           {/* Summary cards */}
@@ -475,7 +502,7 @@ export default function BusinessStats() {
           </div>
 
           {/* Top revenues + top costs */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-1 h-4 rounded-full bg-emerald-500" />
@@ -542,7 +569,7 @@ export default function BusinessStats() {
           </div>
 
           {/* Employee status pie + department breakdown side by side */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Status distribution */}
             {statusDist.length > 0 && (
               <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
@@ -607,7 +634,7 @@ export default function BusinessStats() {
 
           {/* Department budget vs actual chart */}
           {deptData.length > 0 && (
-            <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
                 <div className="flex items-center gap-2 mb-4">
                   <div className="w-1 h-4 rounded-full bg-blue-500" />
@@ -668,7 +695,7 @@ export default function BusinessStats() {
                   </div>
                 ))}
               </div>
-            </>
+            </div>
           )}
         </div>
       )}

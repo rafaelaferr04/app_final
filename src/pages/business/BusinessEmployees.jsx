@@ -18,6 +18,8 @@ function EmployeeModal({ isOpen, onClose, onSave, editEmp, departments }) {
   const [bizUsername, setBizUsername] = useState('');
   const [bizPassword, setBizPassword] = useState('');
   const [showPwd, setShowPwd] = useState(false);
+  const [updateSalary, setUpdateSalary] = useState(false);
+  const [salaryEffectiveDate, setSalaryEffectiveDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [saving, setSaving] = useState(false);
 
   React.useEffect(() => {
@@ -28,15 +30,22 @@ function EmployeeModal({ isOpen, onClose, onSave, editEmp, departments }) {
       setBizUsername('');
       setBizPassword('');
     }
+    setUpdateSalary(false);
+    setSalaryEffectiveDate(new Date().toISOString().split('T')[0]);
   }, [editEmp, isOpen]);
 
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
   const handleSave = async () => {
     if (!form.name.trim()) return toast.error('Nome obrigatório');
+    if (!form.hire_date) return toast.error('Data de entrada obrigatória');
     setSaving(true);
     try {
-      await onSave({ ...form, salary: form.salary !== '' ? parseFloat(form.salary) : null, satisfaction_score: form.satisfaction_score !== '' ? parseFloat(form.satisfaction_score) : null }, editEmp?.id, { bizUsername: bizUsername.trim(), bizPassword });
+      await onSave(
+        { ...form, salary: form.salary !== '' ? parseFloat(form.salary) : null, satisfaction_score: form.satisfaction_score !== '' ? parseFloat(form.satisfaction_score) : null },
+        editEmp?.id,
+        { bizUsername: bizUsername.trim(), bizPassword, updateSalary, salaryEffectiveDate }
+      );
     } finally {
       setSaving(false);
       onClose();
@@ -72,16 +81,8 @@ function EmployeeModal({ isOpen, onClose, onSave, editEmp, departments }) {
                   </select>
                 </div>
                 <div>
-                  <Label>Data de Entrada</Label>
+                  <Label>Data de Entrada *</Label>
                   <Input type="date" value={form.hire_date} onChange={e => set('hire_date', e.target.value)} className="mt-1.5 h-11 rounded-xl" />
-                </div>
-                <div>
-                  <Label>Salário Bruto Mensal (€)</Label>
-                  <Input type="number" value={form.salary} onChange={e => set('salary', e.target.value)} placeholder="0.00" className="mt-1.5 h-11 rounded-xl" />
-                </div>
-                <div>
-                  <Label>Score de Satisfação (0–5)</Label>
-                  <Input type="number" min="0" max="5" step="0.1" value={form.satisfaction_score} onChange={e => set('satisfaction_score', e.target.value)} placeholder="Ex: 4.2" className="mt-1.5 h-11 rounded-xl" />
                 </div>
                 <div>
                   <Label>Estado</Label>
@@ -91,7 +92,34 @@ function EmployeeModal({ isOpen, onClose, onSave, editEmp, departments }) {
                     <option value="leave">Licença</option>
                   </select>
                 </div>
+                <div>
+                  <Label>Salário Bruto Mensal (€)</Label>
+                  <Input type="number" value={form.salary} onChange={e => set('salary', e.target.value)} placeholder="0.00" className="mt-1.5 h-11 rounded-xl" />
+                </div>
+                <div>
+                  <Label>Score de Satisfação (0–5)</Label>
+                  <Input type="number" min="0" max="5" step="0.1" value={form.satisfaction_score} onChange={e => set('satisfaction_score', e.target.value)} placeholder="Ex: 4.2" className="mt-1.5 h-11 rounded-xl" />
+                </div>
               </div>
+
+              {/* Salary update — only when editing */}
+              {editEmp && (
+                <div className="rounded-xl border border-slate-100 bg-slate-50 p-3 space-y-2">
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input type="checkbox" checked={updateSalary} onChange={e => setUpdateSalary(e.target.checked)}
+                      className="w-4 h-4 rounded accent-amber-600 cursor-pointer" />
+                    <span className="text-sm font-medium text-slate-700">Registar como atualização salarial</span>
+                  </label>
+                  <p className="text-xs text-slate-400 leading-relaxed">Assinala se o salário mudou intencionalmente. Assim os cálculos financeiros usam o valor correto a partir dessa data.</p>
+                  {updateSalary && (
+                    <div>
+                      <Label className="text-xs text-slate-600">Data de entrada em vigor</Label>
+                      <Input type="date" value={salaryEffectiveDate} onChange={e => setSalaryEffectiveDate(e.target.value)}
+                        className="mt-1 h-9 rounded-xl text-sm" />
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Business access credentials — admin only */}
               {isBusinessAdmin && (
@@ -259,10 +287,15 @@ export default function BusinessEmployees() {
     prev.field === field ? { field, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { field, dir: 'asc' }
   );
 
+  // Employees scoped to the active department filter (used for both the list and the top stats)
+  const statEmps = useMemo(() =>
+    deptFilter === 'all' ? employees : employees.filter(e => e.department === deptFilter),
+    [employees, deptFilter]);
+
   const filtered = useMemo(() => {
-    let list = employees.filter(e => deptFilter === 'all' || e.department === deptFilter);
+    let list = [...statEmps];
     if (empSort.field) {
-      list = [...list].sort((a, b) => {
+      list.sort((a, b) => {
         const aVal = a[empSort.field] ?? (empSort.field === 'hire_date' ? '' : -Infinity);
         const bVal = b[empSort.field] ?? (empSort.field === 'hire_date' ? '' : -Infinity);
         if (empSort.field === 'hire_date') return empSort.dir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
@@ -270,18 +303,18 @@ export default function BusinessEmployees() {
       });
     }
     return list;
-  }, [employees, deptFilter, empSort]);
+  }, [statEmps, empSort]);
 
   const avgSatisfaction = useMemo(() => {
-    const active = employees.filter(e => e.status === 'active' && e.satisfaction_score != null);
+    const active = statEmps.filter(e => e.status === 'active' && e.satisfaction_score != null);
     return active.length > 0 ? (active.reduce((s, e) => s + e.satisfaction_score, 0) / active.length).toFixed(1) : '—';
-  }, [employees]);
+  }, [statEmps]);
 
   const totalSalaryCost = useMemo(() =>
-    employees.filter(e => e.status === 'active').reduce((s, e) => s + (e.salary || 0), 0),
-    [employees]);
+    statEmps.filter(e => e.status === 'active').reduce((s, e) => s + (e.salary || 0), 0),
+    [statEmps]);
 
-  const handleSaveEmp = async (data, id, { bizUsername, bizPassword } = {}) => {
+  const handleSaveEmp = async (data, id, { bizUsername, bizPassword, updateSalary, salaryEffectiveDate } = {}) => {
     const me = await base44.auth.me();
     let emp;
     if (id) {
@@ -291,6 +324,20 @@ export default function BusinessEmployees() {
     } else {
       emp = await base44.entities.Employee.create({ ...data, created_by: me.email });
       toast.success('Colaborador adicionado');
+    }
+
+    // Record salary history if explicitly requested (edit only)
+    if (id && updateSalary && data.salary != null && salaryEffectiveDate) {
+      try {
+        await base44.entities.SalaryHistory.create({
+          employee_id: id,
+          salary: data.salary,
+          effective_date: salaryEffectiveDate,
+        });
+        qc.invalidateQueries({ queryKey: ['salary_history'] });
+      } catch (e) {
+        toast.error('Erro ao guardar histórico salarial');
+      }
     }
 
     // Create/update business member credentials if provided
@@ -345,7 +392,7 @@ export default function BusinessEmployees() {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { l: 'Colaboradores Ativos', v: employees.filter(e => e.status === 'active').length, icon: '👥' },
+          { l: 'Colaboradores Ativos', v: statEmps.filter(e => e.status === 'active').length, icon: '👥' },
           { l: 'Satisfação Média', v: `${avgSatisfaction}/5`, icon: '⭐' },
           { l: 'Custo Mensal Total', v: `€${totalSalaryCost.toLocaleString('pt-PT')}`, icon: '💼' },
         ].map(s => (
@@ -353,6 +400,7 @@ export default function BusinessEmployees() {
             <div className="text-2xl mb-1">{s.icon}</div>
             <p className="text-xl font-bold text-slate-900">{s.v}</p>
             <p className="text-xs text-slate-500 mt-0.5">{s.l}</p>
+            {deptFilter !== 'all' && <p className="text-[10px] text-amber-600 font-medium mt-0.5 truncate">{deptFilter}</p>}
           </div>
         ))}
       </div>

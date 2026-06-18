@@ -38,6 +38,7 @@ export const base44 = {
     Employee:            createEntityManager('Employee'),
     BusinessAccount:     createEntityManager('BusinessAccount'),
     BusinessMember:      createEntityManager('BusinessMember'),
+    SalaryHistory:       createEntityManager('SalaryHistory'),
   },
 
   appLogs: {

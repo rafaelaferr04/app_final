@@ -101,7 +101,7 @@ export default function AddBusinessTransactionSheet({ isOpen, onClose, onSave, d
             <div className="p-5">
               <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-slate-200" />
               <div className="flex items-center justify-between mb-5">
-                <h2 className="text-lg font-bold text-slate-800">Nova Transação</h2>
+                <h2 className="text-lg font-bold text-slate-800">{editTransaction ? 'Editar Transação' : 'Nova Transação'}</h2>
                 <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100"><X className="w-5 h-5 text-slate-500" /></button>
               </div>
 
@@ -216,7 +216,7 @@ export default function AddBusinessTransactionSheet({ isOpen, onClose, onSave, d
                 <div className="flex justify-center pt-2 pb-4">
                   <Button onClick={handleSave} disabled={saving}
                     className="px-12 h-12 rounded-xl text-base font-semibold bg-amber-600 hover:bg-amber-700">
-                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Guardar Transação'}
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : editTransaction ? 'Guardar Alterações' : 'Guardar Transação'}
                   </Button>
                 </div>
               </div>

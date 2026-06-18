@@ -19,11 +19,12 @@ const TABLE_MAP = {
   Employee:            'employees',
   BusinessAccount:     'business_accounts',
   BusinessMember:      'business_members',
+  SalaryHistory:       'salary_history',
 };
 
 // These tables are shared across all members of the same business
 const BUSINESS_SHARED_TABLES = new Set([
-  'business_transactions', 'business_kpis', 'employees', 'departments',
+  'business_transactions', 'business_kpis', 'employees', 'departments', 'salary_history',
 ]);
 
 async function getCurrentEmail() {

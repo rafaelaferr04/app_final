@@ -18,6 +18,13 @@ import AddBusinessTransactionSheet from '@/components/business/AddBusinessTransa
 import ImportTransactionsModal from '@/components/business/ImportTransactionsModal';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
+function getSalaryAtMonth(emp, monthKey, histories) {
+  const relevant = histories
+    .filter(h => h.employee_id === emp.id && h.effective_date?.slice(0, 7) <= monthKey)
+    .sort((a, b) => b.effective_date.localeCompare(a.effective_date));
+  return relevant.length > 0 ? (relevant[0].salary || 0) : (emp.salary || 0);
+}
+
 function toM(v) {
   if (v >= 1_000_000) return `€${(v / 1_000_000).toFixed(1)}M`;
   if (v >= 1_000)     return `€${(v / 1_000).toFixed(1)}k`;
@@ -44,12 +51,30 @@ function calcKPICurrentValue(kpi, transactions, employees, monthStr) {
     default: return kpi.current_value ?? 0;
   }
 }
+function isNearPeriodEnd(period) {
+  const today = new Date();
+  let periodEnd, threshold;
+  if (period === 'quarterly') {
+    const q = Math.floor(today.getMonth() / 3);
+    periodEnd = new Date(today.getFullYear(), (q + 1) * 3, 0);
+    threshold = 15;
+  } else if (period === 'annual') {
+    periodEnd = new Date(today.getFullYear(), 12, 0);
+    threshold = 25;
+  } else {
+    periodEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    threshold = 7;
+  }
+  const daysLeft = Math.ceil((periodEnd.getTime() - today.getTime()) / 86400000);
+  return daysLeft <= threshold;
+}
 function kpiStatus(kpi, cur) {
   const ratio = kpi.direction === 'down' ? kpi.target_value / (cur || 1) : (cur || 0) / (kpi.target_value || 1);
   if (kpi.direction === 'down' ? cur <= kpi.target_value : cur >= kpi.target_value) return 'achieved';
   if (ratio >= 0.8) return 'on_track';
-  if (ratio >= 0.5) return 'at_risk';
-  return 'failed';
+  const status = ratio >= 0.5 ? 'at_risk' : 'failed';
+  if (!isNearPeriodEnd(kpi.period)) return 'on_track';
+  return status;
 }
 const STATUS_COLORS = { achieved: 'text-emerald-600 bg-emerald-50', on_track: 'text-blue-600 bg-blue-50', at_risk: 'text-amber-600 bg-amber-50', failed: 'text-red-600 bg-red-50' };
 const STATUS_LABELS  = { achieved: 'Atingido', on_track: 'No prazo', at_risk: 'Em risco', failed: 'Falhou' };
@@ -126,6 +151,7 @@ export default function BusinessDashboard() {
   const { data: kpis = [] }         = useQuery({ queryKey: ['business_kpis'],         queryFn: () => base44.entities.BusinessKPI.filter({ is_active: true }) });
   const { data: employees = [] }    = useQuery({ queryKey: ['employees'],              queryFn: () => base44.entities.Employee.filter({ status: 'active' }) });
   const { data: departments = [] }  = useQuery({ queryKey: ['departments'],            queryFn: () => base44.entities.Department.filter() });
+  const { data: salaryHistories = [] } = useQuery({ queryKey: ['salary_history'],      queryFn: () => base44.entities.SalaryHistory.filter({}, '-effective_date') });
 
   // ── Aggregates ─────────────────────────────────────────────────────────────
   const monthRev  = useMemo(() => transactions.filter(t => t.type === 'revenue' && t.date?.startsWith(currentMonth)).reduce((s, t) => s + (t.amount || 0), 0), [transactions, currentMonth]);
@@ -153,10 +179,9 @@ export default function BusinessDashboard() {
   }, [kpis, transactions, employees, currentMonth]);
 
   const kpisAtRisk = useMemo(() =>
-    kpis.filter(k => {
-      const status = kpiStatus(k, calcKPICurrentValue(k, transactions, employees, currentMonth));
-      return ['at_risk','failed'].includes(status) && k.unit === '€' && k.direction === 'down';
-    }).slice(0, 4),
+    kpis.filter(k =>
+      ['at_risk','failed'].includes(kpiStatus(k, calcKPICurrentValue(k, transactions, employees, currentMonth)))
+    ).slice(0, 4),
     [kpis, transactions, employees, currentMonth]);
 
   // ── 6-month chart ──────────────────────────────────────────────────────────
@@ -190,13 +215,13 @@ export default function BusinessDashboard() {
     departments.map(dept => {
       // Transaction costs this month tagged to this department (non-revenue)
       const txCosts     = transactions.filter(t => t.department === dept.name && t.date?.startsWith(currentMonth) && t.type !== 'revenue').reduce((s, t) => s + (t.amount || 0), 0);
-      // Monthly salary of active employees in this department
-      const empSalaries = employees.filter(e => e.department === dept.name && e.status === 'active').reduce((s, e) => s + (e.salary || 0), 0);
+      // Monthly salary of active employees in this department using effective salary for current month
+      const empSalaries = employees.filter(e => e.department === dept.name && e.status === 'active').reduce((s, e) => s + getSalaryAtMonth(e, currentMonth, salaryHistories), 0);
       const spent  = txCosts + empSalaries;
       const budget = dept.monthly_budget || dept.budget_monthly || 0;
       return { name: dept.name, budget, spent, txCosts, empSalaries, pct: budget > 0 ? Math.round((spent / budget) * 100) : 0 };
     }).filter(d => d.budget > 0).slice(0, 6),
-    [departments, transactions, employees, currentMonth]);
+    [departments, transactions, employees, currentMonth, salaryHistories]);
 
   const recentTx = useMemo(() => transactions.slice(0, 10), [transactions]);
 
@@ -299,9 +324,9 @@ export default function BusinessDashboard() {
       </motion.div>
 
       {/* Charts row 1 — side by side from sm (640px) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 min-[520px]:grid-cols-2 xl:grid-cols-3 gap-3">
         {/* Revenue vs Costs — takes 2 cols on xl */}
-        <div className="sm:col-span-1 xl:col-span-2 bg-white rounded-2xl p-4 border border-slate-100 shadow-sm min-w-0">
+        <div className="min-[520px]:col-span-1 xl:col-span-2 bg-white rounded-2xl p-4 border border-slate-100 shadow-sm min-w-0">
           <h3 className="font-semibold text-slate-700 mb-3 text-xs sm:text-sm">Receitas vs Custos — 6 meses</h3>
           <ResponsiveContainer width="100%" height={160}>
             <AreaChart data={chartData} margin={{ top: 4, right: 0, left: -24, bottom: 0 }}>
@@ -335,7 +360,7 @@ export default function BusinessDashboard() {
       </div>
 
       {/* Charts row 2 — side by side from sm */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 min-[520px]:grid-cols-2 xl:grid-cols-3 gap-3">
         {/* Expense categories */}
         <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm min-w-0">
           <div className="flex items-center justify-between mb-3">
@@ -474,7 +499,7 @@ export default function BusinessDashboard() {
       </div>
 
       {/* Bottom row — KPIs at risk + Business insights */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 min-[520px]:grid-cols-2 gap-3">
         {/* KPIs at risk */}
         <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm min-w-0">
           <div className="flex items-center justify-between mb-3">

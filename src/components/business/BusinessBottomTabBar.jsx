@@ -14,7 +14,7 @@ export default function BusinessBottomTabBar() {
   const location = useLocation();
 
   return (
-    <nav className="wm-bottom-nav min-[800px]:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 border-t border-amber-100 safe-area-bottom">
+    <nav className="wm-bottom-nav min-[800px]:hidden shrink-0 bg-white/95 border-t border-amber-100 safe-area-bottom">
       <div className="flex">
         {tabs.map(({ icon: Icon, label, path }) => {
           const active = location.pathname === path || (path === '/BusinessDashboard' && location.pathname === '/');

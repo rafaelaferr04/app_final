@@ -31,18 +31,42 @@ function calcCurrentValue(kpi, transactions, employees) {
   }
 }
 
+function isNearPeriodEnd(period) {
+  const today = new Date();
+  let periodEnd, threshold;
+  if (period === 'quarterly') {
+    const q = Math.floor(today.getMonth() / 3);
+    periodEnd = new Date(today.getFullYear(), (q + 1) * 3, 0);
+    threshold = 15;
+  } else if (period === 'annual') {
+    periodEnd = new Date(today.getFullYear(), 12, 0);
+    threshold = 25;
+  } else {
+    periodEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    threshold = 7;
+  }
+  const daysLeft = Math.ceil((periodEnd.getTime() - today.getTime()) / 86400000);
+  return daysLeft <= threshold;
+}
+
 function getStatus(kpi, current) {
   const t = kpi.target_value || 1;
+  let status;
   if (kpi.direction === 'down') {
-    if (current <= t) return 'achieved';
-    if (current <= t * 1.2) return 'on_track';
-    if (current <= t * 1.5) return 'at_risk';
-    return 'failed';
+    if (current <= t) status = 'achieved';
+    else if (current <= t * 1.2) status = 'on_track';
+    else if (current <= t * 1.5) status = 'at_risk';
+    else status = 'failed';
+  } else {
+    if (current >= t) status = 'achieved';
+    else if (current >= t * 0.8) status = 'on_track';
+    else if (current >= t * 0.5) status = 'at_risk';
+    else status = 'failed';
   }
-  if (current >= t) return 'achieved';
-  if (current >= t * 0.8) return 'on_track';
-  if (current >= t * 0.5) return 'at_risk';
-  return 'failed';
+  if (['at_risk', 'failed'].includes(status) && !isNearPeriodEnd(kpi.period)) {
+    return 'on_track';
+  }
+  return status;
 }
 
 const STATUS_CONFIG = {
@@ -207,7 +231,7 @@ export default function BusinessKPIs() {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 min-[450px]:grid-cols-2 md:grid-cols-3 gap-3">
           <AnimatePresence>
             {filtered.map((kpi, i) => {
               const cfg = STATUS_CONFIG[kpi._status];

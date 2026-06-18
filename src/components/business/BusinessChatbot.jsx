@@ -111,7 +111,7 @@ export default function BusinessChatbot() {
               initial={{ opacity: 0, y: 40, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 40, scale: 0.96 }}
-              className="fixed inset-4 sm:inset-auto sm:bottom-6 sm:right-6 sm:w-[400px] sm:h-[580px] bg-white rounded-3xl shadow-2xl z-50 flex flex-col overflow-hidden"
+              className="fixed inset-4 sm:inset-auto sm:bottom-24 min-[800px]:bottom-6 sm:right-4 min-[800px]:right-6 sm:w-[400px] sm:max-w-[calc(100vw-2rem)] sm:h-[500px] sm:max-h-[calc(100vh-8rem)] min-[800px]:h-[580px] min-[800px]:max-h-[calc(100vh-4rem)] bg-white rounded-3xl shadow-2xl z-50 flex flex-col overflow-hidden"
             >
               {/* Header */}
               <div className="bg-gradient-to-r from-amber-600 to-amber-700 px-5 py-4 flex items-center justify-between shrink-0">
