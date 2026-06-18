@@ -337,7 +337,7 @@ export default function Settings() {
         </div>
 
         {/* Subscrição + Dados lado a lado */}
-        <div className={isBusiness ? "space-y-6" : "grid grid-cols-1 md:grid-cols-2 gap-6 items-start"}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
         {/* Plano activo */}
         {planInfo && (() => {
           const fmtRenewal = renewalDate
