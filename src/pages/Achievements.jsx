@@ -1,39 +1,44 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Trophy, Star, Zap, Lock } from 'lucide-react';
+import { Trophy } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ALL_COURSES } from '../data/coursesData';
 import { calculateTotalXP } from '../lib/xpUtils';
 
 export const ALL_ACHIEVEMENTS = [
-  { id: 'first_transaction', title: 'Primeiros Passos',       description: 'Regista a tua primeira transação',       icon: '👣', xp: 25,  category: 'basics' },
-  { id: 'budget_master',     title: 'Mestre do Orçamento',    description: 'Regista 50 transações',                   icon: '📊', xp: 100, category: 'transactions' },
-  { id: 'saving_starter',    title: 'Poupador Iniciante',     description: 'Cria a tua primeira meta de poupança',    icon: '🎯', xp: 25,  category: 'goals' },
-  { id: 'goal_crusher',      title: 'Destruidor de Metas',    description: 'Completa uma meta de poupança',           icon: '🏆', xp: 150, category: 'goals' },
-  { id: 'course_beginner',   title: 'Aprendiz Entusiasta',    description: 'Completa o teu primeiro curso',           icon: '📚', xp: 100, category: 'learning' },
-  { id: 'course_master',     title: 'Estudioso de Finanças',  description: 'Completa todos os cursos',                icon: '🎓', xp: 500, category: 'learning' },
-  { id: 'week_streak',       title: 'Rei da Consistência',    description: 'Mantém uma sequência de 7 dias',          icon: '🔥', xp: 75,  category: 'streaks' },
-  { id: 'month_streak',      title: 'Mestre da Dedicação',    description: 'Mantém uma sequência de 30 dias',         icon: '⚡', xp: 250, category: 'streaks' },
-  { id: 'chatbot_friend',    title: 'Amigo Financeiro',       description: 'Tem 10 conversas com o Finny',            icon: '🤖', xp: 50,  category: 'chat' },
-  { id: 'saver_bronze',      title: 'Poupador Bronze',        description: 'Poupa €500 no total',                     icon: '🥉', xp: 100, category: 'savings' },
-  { id: 'saver_silver',      title: 'Poupador Prata',         description: 'Poupa €2.500 no total',                   icon: '🥈', xp: 250, category: 'savings' },
-  { id: 'saver_gold',        title: 'Poupador Ouro',          description: 'Poupa €10.000 no total',                  icon: '🥇', xp: 500, category: 'savings' },
+  { id: 'first_transaction', title: 'Primeiros Passos',      description: 'Regista a tua primeira transação',      icon: '👣', xp: 25,  category: 'basics',       rarity: 'common' },
+  { id: 'budget_master',     title: 'Mestre do Orçamento',   description: 'Regista 50 transações',                  icon: '📊', xp: 100, category: 'transactions', rarity: 'rare' },
+  { id: 'saving_starter',    title: 'Poupador Iniciante',    description: 'Cria a tua primeira meta de poupança',   icon: '🎯', xp: 25,  category: 'goals',        rarity: 'common' },
+  { id: 'goal_crusher',      title: 'Destruidor de Metas',   description: 'Completa uma meta de poupança',          icon: '🏆', xp: 150, category: 'goals',        rarity: 'rare' },
+  { id: 'course_beginner',   title: 'Aprendiz Entusiasta',   description: 'Completa o teu primeiro curso',          icon: '📚', xp: 100, category: 'learning',     rarity: 'rare' },
+  { id: 'course_master',     title: 'Estudioso de Finanças', description: 'Completa todos os cursos',               icon: '🎓', xp: 500, category: 'learning',     rarity: 'legendary' },
+  { id: 'week_streak',       title: 'Rei da Consistência',   description: 'Mantém uma sequência de 7 dias',         icon: '🔥', xp: 75,  category: 'streaks',      rarity: 'common' },
+  { id: 'month_streak',      title: 'Mestre da Dedicação',   description: 'Mantém uma sequência de 30 dias',        icon: '⚡', xp: 250, category: 'streaks',      rarity: 'epic' },
+  { id: 'chatbot_friend',    title: 'Amigo Financeiro',      description: 'Tem 10 conversas com o Finny',           icon: '🤖', xp: 50,  category: 'chat',         rarity: 'common' },
+  { id: 'saver_bronze',      title: 'Poupador Bronze',       description: 'Poupa €500 no total',                    icon: '🥉', xp: 100, category: 'savings',      rarity: 'rare' },
+  { id: 'saver_silver',      title: 'Poupador Prata',        description: 'Poupa €2.500 no total',                  icon: '🥈', xp: 250, category: 'savings',      rarity: 'epic' },
+  { id: 'saver_gold',        title: 'Poupador Ouro',         description: 'Poupa €10.000 no total',                 icon: '🥇', xp: 500, category: 'savings',      rarity: 'legendary' },
 ];
 
-const CATEGORIES = [
-  { id: 'all',       label: 'Todas' },
-  { id: 'basics',    label: 'Básico' },
-  { id: 'goals',     label: 'Metas' },
-  { id: 'learning',  label: 'Aprendizagem' },
-  { id: 'savings',   label: 'Poupança' },
-  { id: 'streaks',   label: 'Sequências' },
-];
+const RARITY = {
+  common:    { label: 'Comum',    bg: 'bg-slate-50',   border: 'border-slate-200',  badge: 'bg-slate-200 text-slate-600',    icon: '⚪' },
+  rare:      { label: 'Raro',     bg: 'bg-blue-50',    border: 'border-blue-200',   badge: 'bg-blue-200 text-blue-700',      icon: '🔵' },
+  epic:      { label: 'Épico',    bg: 'bg-violet-50',  border: 'border-violet-200', badge: 'bg-violet-200 text-violet-700',  icon: '🟣' },
+  legendary: { label: 'Lendário', bg: 'bg-amber-50',   border: 'border-amber-300',  badge: 'bg-amber-200 text-amber-800',    icon: '🟡' },
+};
 
-const levelNames = ['Iniciante', 'Novato', 'Aprendiz', 'Intermédio', 'Habilidoso', 'Avançado', 'Especialista', 'Mestre', 'Grão-Mestre', 'Lenda'];
+const CAT_LABELS = {
+  basics:       '👣 Primeiros Passos',
+  transactions: '📊 Transações',
+  goals:        '🎯 Metas',
+  learning:     '📚 Aprendizagem',
+  savings:      '💰 Poupança',
+  streaks:      '🔥 Sequências',
+  chat:         '🤖 Chatbot',
+};
 
 export default function Achievements() {
-  const [selectedCategory, setSelectedCategory] = useState('all');
   const [user, setUser] = useState(null);
   const queryClient = useQueryClient();
 
@@ -44,7 +49,7 @@ export default function Achievements() {
   const { data: achievements = [] } = useQuery({
     queryKey: ['achievements', user?.email],
     queryFn: () => user ? base44.entities.Achievement.filter({ created_by: user.email }) : [],
-    enabled: !!user
+    enabled: !!user,
   });
 
   const { data: userProfiles = [] } = useQuery({
@@ -58,25 +63,25 @@ export default function Achievements() {
       }
       return profiles;
     },
-    enabled: !!user
+    enabled: !!user,
   });
 
   const { data: transactions = [] } = useQuery({
     queryKey: ['transactions', user?.email],
     queryFn: () => user ? base44.entities.Transaction.filter({ created_by: user.email }) : [],
-    enabled: !!user
+    enabled: !!user,
   });
 
   const { data: goals = [] } = useQuery({
     queryKey: ['goals', user?.email],
     queryFn: () => user ? base44.entities.SavingsGoal.filter({ created_by: user.email }) : [],
-    enabled: !!user
+    enabled: !!user,
   });
 
   const { data: courseProgress = [] } = useQuery({
     queryKey: ['courseProgress', user?.email],
     queryFn: () => user ? base44.entities.CourseProgress.filter({ created_by: user.email }) : [],
-    enabled: !!user
+    enabled: !!user,
   });
 
   const updateUserProfile = useMutation({
@@ -89,18 +94,18 @@ export default function Achievements() {
 
   const calculateUnlocked = () => {
     const unlocked = [...unlockedIds];
-    if (transactions.length >= 1 && !unlocked.includes('first_transaction')) unlocked.push('first_transaction');
-    if (transactions.length >= 50 && !unlocked.includes('budget_master')) unlocked.push('budget_master');
-    if (goals.length >= 1 && !unlocked.includes('saving_starter')) unlocked.push('saving_starter');
+    if (transactions.length >= 1  && !unlocked.includes('first_transaction')) unlocked.push('first_transaction');
+    if (transactions.length >= 50 && !unlocked.includes('budget_master'))     unlocked.push('budget_master');
+    if (goals.length >= 1         && !unlocked.includes('saving_starter'))    unlocked.push('saving_starter');
     if (goals.some(g => g.current_amount >= g.target_amount) && !unlocked.includes('goal_crusher')) unlocked.push('goal_crusher');
-    if (courseProgress.some(p => p.completed) && !unlocked.includes('course_beginner')) unlocked.push('course_beginner');
-    if (courseProgress.filter(p => p.completed).length >= 6 && !unlocked.includes('course_master')) unlocked.push('course_master');
-    if (userProfile.streak_days >= 7 && !unlocked.includes('week_streak')) unlocked.push('week_streak');
+    if (courseProgress.some(p => p.completed)                && !unlocked.includes('course_beginner')) unlocked.push('course_beginner');
+    if (courseProgress.filter(p => p.completed).length >= 6  && !unlocked.includes('course_master'))   unlocked.push('course_master');
+    if (userProfile.streak_days >= 7  && !unlocked.includes('week_streak'))  unlocked.push('week_streak');
     if (userProfile.streak_days >= 30 && !unlocked.includes('month_streak')) unlocked.push('month_streak');
     const totalSaved = goals.reduce((s, g) => s + (g.current_amount || 0), 0);
-    if (totalSaved >= 500 && !unlocked.includes('saver_bronze')) unlocked.push('saver_bronze');
-    if (totalSaved >= 2500 && !unlocked.includes('saver_silver')) unlocked.push('saver_silver');
-    if (totalSaved >= 10000 && !unlocked.includes('saver_gold')) unlocked.push('saver_gold');
+    if (totalSaved >= 500   && !unlocked.includes('saver_bronze')) unlocked.push('saver_bronze');
+    if (totalSaved >= 2500  && !unlocked.includes('saver_silver')) unlocked.push('saver_silver');
+    if (totalSaved >= 10000 && !unlocked.includes('saver_gold'))   unlocked.push('saver_gold');
     return unlocked;
   };
 
@@ -122,93 +127,81 @@ export default function Achievements() {
     }
   }, [totalXP, userProfile?.id]);
 
-  const filteredAchievements = selectedCategory === 'all'
-    ? ALL_ACHIEVEMENTS
-    : ALL_ACHIEVEMENTS.filter(a => a.category === selectedCategory);
-
-  const level = Math.floor(totalXP / 500) + 1;
-  const levelName = levelNames[Math.min(level - 1, levelNames.length - 1)];
-  const xpPerLevel = 500;
-  const currentLevelXp = totalXP % xpPerLevel;
+  const byCategory = {};
+  ALL_ACHIEVEMENTS.forEach(a => {
+    if (!byCategory[a.category]) byCategory[a.category] = [];
+    byCategory[a.category].push(a);
+  });
 
   return (
-    <div className="space-y-6">
-      {/* Level card */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl bg-gradient-to-br from-amber-400 via-orange-500 to-rose-500 p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/20 backdrop-blur">
-                <Trophy className="h-8 w-8" />
-              </div>
-              <div className="absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-amber-600 font-bold text-sm">{level}</div>
-            </div>
-            <div>
-              <p className="text-sm text-amber-100">Nível Atual</p>
-              <p className="text-2xl font-bold">{levelName}</p>
-            </div>
-          </div>
-          <div className="text-right">
-            <div className="flex items-center gap-1 justify-end">
-              <Zap className="h-5 w-5 text-yellow-300" />
-              <span className="text-2xl font-bold">{totalXP}</span>
-            </div>
-            <p className="text-sm text-amber-100">XP Total</p>
-          </div>
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-slate-800">Conquistas</h1>
+        <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 px-4 py-2 rounded-full">
+          <Trophy className="w-4 h-4 text-amber-600" />
+          <span className="text-sm font-bold text-amber-700">{currentUnlocked.length} / {ALL_ACHIEVEMENTS.length}</span>
         </div>
-
-        <div className="mt-4">
-          <div className="flex justify-between text-sm mb-1">
-            <span className="text-amber-100">Progresso para Nível {level + 1}</span>
-            <span>{currentLevelXp}/{xpPerLevel} XP</span>
-          </div>
-          <div className="h-3 overflow-hidden rounded-full bg-white/20">
-            <motion.div initial={{ width: 0 }} animate={{ width: `${(currentLevelXp / xpPerLevel) * 100}%` }} transition={{ duration: 1 }}
-              className="h-full rounded-full bg-white" />
-          </div>
-        </div>
-
-        <div className="mt-4 flex justify-center gap-6 pt-4 border-t border-white/20">
-          <div className="text-center"><p className="text-2xl font-bold">{currentUnlocked.length}</p><p className="text-xs text-amber-100">Desbloqueadas</p></div>
-          <div className="text-center"><p className="text-2xl font-bold">{ALL_ACHIEVEMENTS.length - currentUnlocked.length}</p><p className="text-xs text-amber-100">Restantes</p></div>
-          <div className="text-center"><p className="text-2xl font-bold">{userProfile.streak_days || 0}</p><p className="text-xs text-amber-100">Dias Seguidos</p></div>
-        </div>
-      </motion.div>
-
-      {/* Category filter */}
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {CATEGORIES.map((cat) => (
-          <button key={cat.id} onClick={() => setSelectedCategory(cat.id)}
-            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
-              selectedCategory === cat.id ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}>
-            {cat.label}
-          </button>
-        ))}
       </div>
 
-      {/* Achievements grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {filteredAchievements.map((achievement, index) => {
-          const isUnlocked = currentUnlocked.includes(achievement.id);
-          return (
-            <motion.div key={achievement.id} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: index * 0.05 }}
-              className={`relative rounded-2xl p-4 ${isUnlocked ? 'bg-gradient-to-br from-amber-50 to-orange-50 shadow-sm' : 'bg-white shadow-sm'}`}>
-              {!isUnlocked && <div className="absolute top-2 right-2"><Lock className="h-4 w-4 text-slate-400" /></div>}
-              <div className={`w-14 h-14 rounded-xl flex items-center justify-center text-2xl mb-3 ${isUnlocked ? 'bg-gradient-to-br from-amber-400 to-orange-500 shadow-lg' : 'bg-slate-200 grayscale opacity-50'}`}>
-                {achievement.icon}
+      {/* Progress card */}
+      <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+        <div className="flex justify-between text-sm mb-2">
+          <span className="font-medium text-slate-700">Progresso geral</span>
+          <span className="font-bold text-amber-600">{Math.round((currentUnlocked.length / ALL_ACHIEVEMENTS.length) * 100)}%</span>
+        </div>
+        <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-amber-500 to-amber-400 rounded-full transition-all duration-700"
+            style={{ width: `${(currentUnlocked.length / ALL_ACHIEVEMENTS.length) * 100}%` }}
+          />
+        </div>
+        <div className="flex gap-4 mt-4 text-center">
+          {Object.entries(RARITY).map(([k, r]) => {
+            const count = ALL_ACHIEVEMENTS.filter(a => a.rarity === k && currentUnlocked.includes(a.id)).length;
+            const total = ALL_ACHIEVEMENTS.filter(a => a.rarity === k).length;
+            return (
+              <div key={k} className="flex-1">
+                <span className="text-lg">{r.icon}</span>
+                <p className="text-xs font-bold text-slate-700 mt-0.5">{count}/{total}</p>
+                <p className="text-[10px] text-slate-400">{r.label}</p>
               </div>
-              <h3 className={`font-bold text-sm ${isUnlocked ? 'text-slate-800' : 'text-slate-400'}`}>{achievement.title}</h3>
-              <p className={`text-xs mt-1 ${isUnlocked ? 'text-slate-500' : 'text-slate-400'}`}>{achievement.description}</p>
-              <div className={`mt-3 flex items-center gap-1 ${isUnlocked ? 'text-amber-600' : 'text-slate-400'}`}>
-                <Star className={`h-3.5 w-3.5 ${isUnlocked ? 'fill-amber-400' : ''}`} />
-                <span className="text-xs font-medium">{achievement.xp} XP</span>
-              </div>
-            </motion.div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
+
+      {/* By category */}
+      {Object.entries(byCategory).map(([cat, achs]) => (
+        <div key={cat}>
+          <h3 className="text-sm font-semibold text-slate-500 mb-3">{CAT_LABELS[cat] || cat}</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+            {achs.map((ach, i) => {
+              const isUnlocked = currentUnlocked.includes(ach.id);
+              const r = RARITY[ach.rarity];
+              return (
+                <motion.div key={ach.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                  className={`p-4 rounded-2xl border-2 transition-all ${isUnlocked ? `${r.bg} ${r.border}` : 'bg-white border-slate-100 opacity-50 grayscale'}`}>
+                  <div className="flex items-start gap-3">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0 ${isUnlocked ? '' : 'opacity-30'}`}>
+                      {ach.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                        <h4 className={`text-sm font-bold ${isUnlocked ? 'text-slate-800' : 'text-slate-400'}`}>{ach.title}</h4>
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${r.badge}`}>{r.label}</span>
+                      </div>
+                      <p className={`text-xs ${isUnlocked ? 'text-slate-600' : 'text-slate-400'}`}>{ach.description}</p>
+                      {!isUnlocked && <p className="text-[10px] text-slate-400 mt-1 italic">Ainda não desbloqueado</p>}
+                      {isUnlocked  && <p className="text-[10px] text-emerald-600 font-semibold mt-1">✓ Conquistado · +{ach.xp} XP</p>}
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

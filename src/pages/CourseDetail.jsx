@@ -19,6 +19,7 @@ export default function CourseDetail() {
   const [mode, setMode] = useState('learn');
   const [quizAnswers, setQuizAnswers] = useState({});
   const [quizSubmitted, setQuizSubmitted] = useState(false);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [user, setUser] = useState(null);
   const queryClient = useQueryClient();
 
@@ -195,7 +196,7 @@ export default function CourseDetail() {
               Aprender
             </button>
             <button
-              onClick={() => { setMode('quiz'); setCurrentLessonIndex(0); }}
+              onClick={() => { setMode('quiz'); setCurrentLessonIndex(0); setCurrentQuestionIndex(0); setQuizAnswers({}); setQuizSubmitted(false); }}
               className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg font-medium text-sm transition-all ${mode === 'quiz' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500'}`}
             >
               <Gamepad2 className="h-4 w-4" />
@@ -271,104 +272,118 @@ export default function CourseDetail() {
           </div>
         </>
       ) : (
-        /* Quiz Mode */
+        /* Quiz Mode — one question at a time */
         <div className="px-5 py-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100"
-          >
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 rounded-xl bg-blue-700 flex items-center justify-center">
-                <Gamepad2 className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-slate-800">Quiz: {course.title}</h2>
-                <p className="text-sm text-slate-500">{course.quizQuestions.length} questões · {course.xp_reward} XP</p>
-              </div>
-            </div>
+          {!quizSubmitted ? (() => {
+            const q = course.quizQuestions[currentQuestionIndex];
+            const total = course.quizQuestions.length;
+            const answered = quizAnswers[currentQuestionIndex] !== undefined;
+            const isLast = currentQuestionIndex === total - 1;
 
-            <div className="space-y-6">
-              {course.quizQuestions.map((q, qIndex) => (
-                <div key={qIndex} className="space-y-3">
-                  <p className="font-medium text-slate-800">{qIndex + 1}. {q.question}</p>
-                  <RadioGroup
-                    value={quizAnswers[qIndex]?.toString()}
-                    onValueChange={(value) => setQuizAnswers({ ...quizAnswers, [qIndex]: parseInt(value) })}
-                    disabled={quizSubmitted}
-                  >
-                    {q.options.map((option, oIndex) => {
-                      const isSelected = quizAnswers[qIndex] === oIndex;
-                      const isCorrect = oIndex === q.correct;
-                      let cls = `quiz-option flex items-center space-x-3 p-4 rounded-xl border-2 transition-all cursor-pointer `;
-                      if (quizSubmitted) {
-                        cls += 'quiz-submitted ';
-                        if (isCorrect) cls += 'bg-emerald-100 border-emerald-400 ring-2 ring-emerald-300';
-                        else if (isSelected) cls += 'bg-rose-100 border-rose-400';
-                        else cls += 'bg-slate-50 border-slate-200 opacity-60';
-                      } else if (isSelected) {
-                        cls += 'bg-blue-100 border-blue-400 ring-2 ring-blue-300 shadow-md';
-                      } else {
-                        cls += 'bg-slate-50 border-slate-200';
-                      }
-                      return (
-                        <div
-                          key={oIndex}
-                          className={cls}
-                          onClick={() => !quizSubmitted && setQuizAnswers({ ...quizAnswers, [qIndex]: oIndex })}
-                        >
-                          <RadioGroupItem value={oIndex.toString()} id={`q${qIndex}-o${oIndex}`} className="pointer-events-none" />
-                          <Label htmlFor={`q${qIndex}-o${oIndex}`} className="flex-1 cursor-pointer font-medium text-slate-700 select-none pointer-events-none">
+            return (
+              <AnimatePresence mode="wait">
+                <motion.div key={currentQuestionIndex}
+                  initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }}
+                  className="space-y-4">
+
+                  {/* Progress */}
+                  <div>
+                    <div className="flex justify-between text-xs text-slate-500 mb-1.5">
+                      <span>Pergunta {currentQuestionIndex + 1} de {total}</span>
+                      <span>{Math.round(((currentQuestionIndex) / total) * 100)}%</span>
+                    </div>
+                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-blue-700 rounded-full transition-all duration-500"
+                        style={{ width: `${((currentQuestionIndex) / total) * 100}%` }} />
+                    </div>
+                  </div>
+
+                  {/* Question card */}
+                  <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                    <p className="font-semibold text-slate-800 text-base mb-5">{q.question}</p>
+                    <div className="space-y-3">
+                      {q.options.map((option, oIndex) => {
+                        const isSelected = quizAnswers[currentQuestionIndex] === oIndex;
+                        return (
+                          <button key={oIndex} onClick={() => setQuizAnswers({ ...quizAnswers, [currentQuestionIndex]: oIndex })}
+                            className={`w-full text-left p-4 rounded-xl border-2 transition-all font-medium text-sm
+                              ${isSelected ? 'bg-blue-50 border-blue-500 text-blue-800' : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300'}`}>
                             {option}
-                          </Label>
-                          {quizSubmitted && isCorrect && <CheckCircle2 className="h-6 w-6 text-emerald-500 shrink-0" />}
-                          {quizSubmitted && isSelected && !isCorrect && <span className="text-lg shrink-0">❌</span>}
-                        </div>
-                      );
-                    })}
-                  </RadioGroup>
-                </div>
-              ))}
+                          </button>
+                        );
+                      })}
+                    </div>
 
-              {!quizSubmitted ? (
-                <Button
-                  onClick={handleQuizSubmit}
-                  disabled={Object.keys(quizAnswers).length < course.quizQuestions.length}
-                  className="w-full h-12 bg-blue-700 hover:bg-blue-800"
-                >
-                  Submeter Respostas
-                </Button>
-              ) : (
-                <div className="space-y-4">
-                  {(() => {
-                    const score = course.quizQuestions.filter((q, i) => quizAnswers[i] === q.correct).length;
-                    const passed = score >= course.quizQuestions.length * 0.7;
-                    return (
-                      <>
-                        <div className={`p-4 rounded-xl text-center ${passed ? 'bg-emerald-50' : 'bg-amber-50'}`}>
-                          <p className={`font-bold text-lg ${passed ? 'text-emerald-700' : 'text-amber-700'}`}>
-                            {passed ? '🎉 Parabéns!' : '📚 Continua a aprender!'}
-                          </p>
-                          <p className={`text-sm ${passed ? 'text-emerald-600' : 'text-amber-600'}`}>
-                            Acertaste {score}/{course.quizQuestions.length}
-                          </p>
-                          {passed && !progress?.completed && (
-                            <p className="text-emerald-600 font-medium mt-2">+{course.xp_reward} XP ganhos!</p>
-                          )}
-                        </div>
-                        <Link to={createPageUrl('Courses')}>
-                          <Button className="w-full h-12 bg-blue-700 hover:bg-blue-800">
-                            <Trophy className="mr-2 h-4 w-4" />
-                            Voltar aos Cursos
-                          </Button>
-                        </Link>
-                      </>
-                    );
-                  })()}
-                </div>
-              )}
-            </div>
-          </motion.div>
+                    <div className="mt-6 flex gap-3">
+                      {currentQuestionIndex > 0 && (
+                        <Button variant="outline" onClick={() => setCurrentQuestionIndex(i => i - 1)} className="h-12 px-5 rounded-xl">
+                          ← Anterior
+                        </Button>
+                      )}
+                      {!isLast ? (
+                        <Button onClick={() => setCurrentQuestionIndex(i => i + 1)} disabled={!answered}
+                          className="flex-1 h-12 bg-blue-700 hover:bg-blue-800 rounded-xl">
+                          Próxima <ChevronRight className="ml-1 h-4 w-4" />
+                        </Button>
+                      ) : (
+                        <Button onClick={handleQuizSubmit}
+                          disabled={Object.keys(quizAnswers).length < total}
+                          className="flex-1 h-12 bg-blue-700 hover:bg-blue-800 rounded-xl">
+                          Submeter Respostas
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+            );
+          })() : (
+            /* Results */
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+              className="space-y-4">
+              {(() => {
+                const score = course.quizQuestions.filter((q, i) => quizAnswers[i] === q.correct).length;
+                const passed = score >= course.quizQuestions.length * 0.7;
+                return (
+                  <>
+                    <div className={`p-6 rounded-2xl text-center ${passed ? 'bg-emerald-50 border-2 border-emerald-200' : 'bg-amber-50 border-2 border-amber-200'}`}>
+                      <p className={`font-bold text-2xl mb-1 ${passed ? 'text-emerald-700' : 'text-amber-700'}`}>
+                        {passed ? '🎉 Parabéns!' : '📚 Continua a aprender!'}
+                      </p>
+                      <p className={`text-sm ${passed ? 'text-emerald-600' : 'text-amber-600'}`}>
+                        Acertaste {score} de {course.quizQuestions.length}
+                      </p>
+                      {passed && !progress?.completed && (
+                        <p className="text-emerald-600 font-semibold mt-2">+{course.xp_reward} XP ganhos!</p>
+                      )}
+                    </div>
+
+                    {/* Question review */}
+                    <div className="space-y-3">
+                      {course.quizQuestions.map((q, i) => {
+                        const correct = quizAnswers[i] === q.correct;
+                        return (
+                          <div key={i} className={`p-4 rounded-2xl border-2 ${correct ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200'}`}>
+                            <p className="text-sm font-semibold text-slate-800 mb-1">{i + 1}. {q.question}</p>
+                            <p className={`text-xs ${correct ? 'text-emerald-700' : 'text-rose-700'}`}>
+                              {correct ? '✓ Correto' : `✗ Errado — Resposta certa: ${q.options[q.correct]}`}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <Link to={createPageUrl('Courses')}>
+                      <Button className="w-full h-12 bg-blue-700 hover:bg-blue-800 rounded-xl">
+                        <Trophy className="mr-2 h-4 w-4" />
+                        Voltar aos Cursos
+                      </Button>
+                    </Link>
+                  </>
+                );
+              })()}
+            </motion.div>
+          )}
         </div>
       )}
     </div>
