@@ -195,8 +195,9 @@ export default function Goals() {
                 type="number" step="0.01" min="0"
                 value={fundAmount}
                 onChange={(e) => setFundAmount(e.target.value)}
+                onWheel={(e) => e.target.blur()}
                 placeholder="Valor a adicionar"
-                className="h-12 pl-8 rounded-xl"
+                className="h-12 pl-8 rounded-xl [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
             </div>
             <Button

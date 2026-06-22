@@ -334,8 +334,9 @@ export default function Transactions() {
                       type="number" min="0" step="0.01"
                       value={minAmount}
                       onChange={(e) => setMinAmount(e.target.value)}
+                      onWheel={(e) => e.target.blur()}
                       placeholder="Mínimo"
-                      className="pl-7 h-11 rounded-xl text-sm"
+                      className="pl-7 h-11 rounded-xl text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                   </div>
                   <div className="relative">
@@ -344,8 +345,9 @@ export default function Transactions() {
                       type="number" min="0" step="0.01"
                       value={maxAmount}
                       onChange={(e) => setMaxAmount(e.target.value)}
+                      onWheel={(e) => e.target.blur()}
                       placeholder="Máximo"
-                      className="pl-7 h-11 rounded-xl text-sm"
+                      className="pl-7 h-11 rounded-xl text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                   </div>
                 </div>

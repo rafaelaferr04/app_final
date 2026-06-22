@@ -103,8 +103,9 @@ export default function AddGoalSheet({ isOpen, onClose, onSave }) {
                     min="0"
                     value={formData.target_amount}
                     onChange={(e) => setFormData({...formData, target_amount: e.target.value})}
+                    onWheel={(e) => e.target.blur()}
                     placeholder="10.000"
-                    className="h-12 pl-8 rounded-xl border-slate-200"
+                    className="h-12 pl-8 rounded-xl border-slate-200 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     required
                   />
                 </div>
@@ -120,8 +121,9 @@ export default function AddGoalSheet({ isOpen, onClose, onSave }) {
                     min="0"
                     value={formData.current_amount}
                     onChange={(e) => setFormData({...formData, current_amount: e.target.value})}
+                    onWheel={(e) => e.target.blur()}
                     placeholder="0"
-                    className="h-12 pl-8 rounded-xl border-slate-200"
+                    className="h-12 pl-8 rounded-xl border-slate-200 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                 </div>
               </div>

@@ -675,7 +675,7 @@ export default function Settings() {
               <Label>Valor do Orçamento Mensal</Label>
               <div className="relative mt-1.5">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">€</span>
-                <Input type="number" value={budgetInput} onChange={(e) => setBudgetInput(e.target.value)} placeholder="3.000" className="h-12 pl-8 rounded-xl" />
+                <Input type="number" value={budgetInput} onChange={(e) => setBudgetInput(e.target.value)} onWheel={(e) => e.target.blur()} placeholder="3.000" className="h-12 pl-8 rounded-xl [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
               </div>
             </div>
             <Button onClick={handleUpdateBudget} disabled={!budgetInput || isSaving} className="w-full h-12 bg-blue-700 hover:bg-blue-800">
